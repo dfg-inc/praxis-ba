@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build / generate outputs
+dist/
+build/
+coverage/
+.cache/
+.tmp/
+temp/
+tmp/
+*.tsbuildinfo
+.turbo/
+.npm/
+
+# VitePress
+**/.vitepress/cache/
+**/.vitepress/dist/
+apps/marketplace-site/docs/.vitepress/dist/
+
+# Runtime / local DBs
+*.sqlite
+*.sqlite-journal
+.praxis-quality/
+
+# Logs & process
+logs/
+*.log
+*.pid
+*.lock.tmp
+
+# Environment & secrets (keep templates)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Optional local project overrides (template is .project.example)
+.project
+.project.yaml
+.project.yml

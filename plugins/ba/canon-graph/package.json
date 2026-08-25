@@ -1,0 +1,39 @@
+{
+  "name": "@praxis/ba-canon-graph",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "bin": {
+    "praxis-ba": "./bin/praxis-ba.mjs",
+    "adlc-ba": "./bin/praxis-ba.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "yaml": "^2.9.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "fast-check": "^3.23.2",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

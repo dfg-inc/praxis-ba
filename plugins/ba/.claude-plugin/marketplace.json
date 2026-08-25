@@ -1,0 +1,15 @@
+{
+  "name": "praxis",
+  "owner": {
+    "name": "dfuture-co"
+  },
+  "description": "Praxis Phase 1 marketplace catalog entry for praxis-ba (also distributed from monorepo apps/marketplace-site).",
+  "plugins": [
+    {
+      "name": "praxis-ba",
+      "source": "./",
+      "description": "Praxis BA plugin — md-first requirements canon with canon-graph CLI.",
+      "version": "0.4.0"
+    }
+  ]
+}
