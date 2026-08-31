@@ -51,6 +51,7 @@ import { emitPage, naturalCompare, type FrontmatterFor } from './serialize.js'
 import { baselineManifestSchema, countersSchema, validateFrontmatter } from './schema.js'
 import { writeCounters, type Counters } from './ids.js'
 import { atomicWrite, loadGraph } from './writer.js'
+import { DEFAULT_CANON_ROOTS } from './fs.js'
 import type { Check, NodeType, Status, Verdict } from './types.js'
 
 // ==========================================================================
@@ -480,7 +481,7 @@ export type MigrateResult = { written: string[] }
 // perfectly valid fr/nfr/br frontmatter, and scanning it would double-count
 // those ids into the live graph. Listing it as a "canon root" here would
 // do nothing but misleadingly suggest it's just another scannable root.
-const MIGRATED_CANON_ROOTS: readonly string[] = ['vision.md', 'epics/', 'br/', 'cr/', 'wp/', 'bugs/']
+const MIGRATED_CANON_ROOTS: readonly string[] = [...DEFAULT_CANON_ROOTS]
 
 /**
  * Reads a v1 canon under `v1Dir` (laid out like today's `product/`) and

@@ -14,10 +14,15 @@
 //   - `readCanonConfig` — the OPTIONAL `<repo>/.ba/config.yaml`
 //     (`canon_roots: string[]`, schema.ts's `configSchema`). Absent config
 //     is the ORDINARY case (every pre-Task-0 repo/fixture has none) — not
-//     an error, and preserves the original walk-everything default exactly.
+//     an error.
 //   - `walkCanonFiles` — resolves the scan roots (config's `canon_roots`
-//     when present, else the whole repo) and returns every `.md` path
-//     under them, deduped, in first-encounter order.
+//     when present, else {@link DEFAULT_CANON_ROOTS}) and returns every `.md`
+//     path under them, deduped, in first-encounter order.
+//
+// Installed/generated/internal directories (`.git/`, `node_modules/`, `dist/`,
+// …) are excluded UNCONDITIONALLY inside the recursive walk — a `--repo .`
+// validate must never interpret packaged plugin `SKILL.md` files under
+// `node_modules/@praxis/*` as project canon documents.
 //
 // `.ba/` (the machine ledger/lock/cache) and `baselines/` (frozen
 // snapshots) are excluded UNCONDITIONALLY, regardless of config — never
@@ -51,7 +56,33 @@ import { configSchema } from './schema.js'
 // caller that actually reads `link_root`, which is what surfaced the gap.
 type CanonConfig = z.infer<typeof configSchema>
 
-const EXCLUDED_DIR_NAMES = new Set(['.ba', 'baselines'])
+/**
+ * Default BA/project surface when `.ba/config.yaml` is absent.
+ * Prefer an explicit allowlist over walking the whole tree (which would
+ * ingest VitePress prose and installed dependency Markdown).
+ */
+export const DEFAULT_CANON_ROOTS: readonly string[] = [
+  'vision.md',
+  'epics/',
+  'br/',
+  'cr/',
+  'wp/',
+  'bugs/',
+  'goals/',
+]
+
+/** Directory basenames never traversed, even when listed under a root. */
+export const EXCLUDED_DIR_NAMES = new Set([
+  '.ba',
+  'baselines',
+  '.git',
+  'node_modules',
+  'dist',
+  'build',
+  'coverage',
+  'tmp',
+  'vendor',
+])
 
 // WP-folder attachment files — canon-ATTACHED artifacts (e.g. a WP's
 // `plan.md`, `writer.ts`'s `wpPath` sibling) that live INSIDE the `wp/`
@@ -91,9 +122,9 @@ export function readCanonConfig(repo: string): CanonConfig | undefined {
 }
 
 /** Recursively collects every `.md` file path under `dir` into `out`,
- * skipping `.ba/`/`baselines/` unconditionally (see file header). The one
- * recursive primitive both the whole-repo default walk and each
- * individually configured root's walk share. */
+ * skipping excluded directories unconditionally (see file header). The one
+ * recursive primitive both the default surface walk and each configured
+ * root's walk share. */
 function walkMdFilesUnder(dir: string, out: string[]): void {
   let entries: Dirent[]
   try {
@@ -116,7 +147,7 @@ function walkMdFilesUnder(dir: string, out: string[]): void {
  * single file like `vision.md`, or a directory like `epics/`) to its `.md`
  * file(s). A root that doesn't exist yet on disk (e.g. `bugs/` before the
  * first `bug capture`) resolves to zero files, not an error — the same
- * tolerance the whole-repo walk already has for an unreadable directory. */
+ * tolerance the default surface walk already has for an unreadable directory. */
 function walkRoot(repo: string, root: string): string[] {
   const abs = join(repo, root)
   let stat: ReturnType<typeof statSync>
@@ -131,28 +162,10 @@ function walkRoot(repo: string, root: string): string[] {
   return out
 }
 
-/**
- * The ONE canon-file discovery function every consumer routes through:
- * `validate`'s corpus walk and `fmt`'s whole-repo enumeration (both
- * cli.ts), and `loadGraph` (writer.ts) — which the VitePress data loaders
- * (`product/.vitepress/loaders/*.data.ts`) call transitively via
- * `@praxis-ba/canon-graph`.
- *
- * When `<repo>/.ba/config.yaml` exists, scans ONLY its `canon_roots`.
- * Absent config: walks the WHOLE repo minus `.ba/`+`baselines/` — the
- * original, pre-scoping default every Plan-1 fixture/test (none of which
- * has a config file) still exercises byte-for-byte identically.
- */
-export function walkCanonFiles(repo: string): string[] {
-  const config = readCanonConfig(repo)
-  if (!config) {
-    const out: string[] = []
-    walkMdFilesUnder(repo, out)
-    return out
-  }
+function collectFromRoots(repo: string, roots: readonly string[]): string[] {
   const seen = new Set<string>()
   const out: string[] = []
-  for (const root of config.canon_roots) {
+  for (const root of roots) {
     for (const file of walkRoot(repo, root)) {
       if (!seen.has(file)) {
         seen.add(file)
@@ -161,4 +174,20 @@ export function walkCanonFiles(repo: string): string[] {
     }
   }
   return out
+}
+
+/**
+ * The ONE canon-file discovery function every consumer routes through:
+ * `validate`'s corpus walk and `fmt`'s whole-repo enumeration (both
+ * cli.ts), and `loadGraph` (writer.ts) — which the VitePress data loaders
+ * (`product/.vitepress/loaders/*.data.ts`) call transitively via
+ * `@praxis-ba/canon-graph`.
+ *
+ * When `<repo>/.ba/config.yaml` exists, scans ONLY its `canon_roots`.
+ * Absent config: scans {@link DEFAULT_CANON_ROOTS} (explicit project
+ * surface) — never a whole-tree walk into `node_modules/` or prose trees.
+ */
+export function walkCanonFiles(repo: string): string[] {
+  const config = readCanonConfig(repo)
+  return collectFromRoots(repo, config?.canon_roots ?? DEFAULT_CANON_ROOTS)
 }

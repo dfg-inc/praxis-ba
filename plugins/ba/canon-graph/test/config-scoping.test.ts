@@ -18,7 +18,7 @@
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
 import { describe, it, expect, afterEach } from 'vitest'
 import { runCli } from '../src/cli'
@@ -221,16 +221,16 @@ describe('canon-path scoping — wp plan.md attachments excluded from canon disc
 })
 
 // ==========================================================================
-// 2. No config at all: the ORIGINAL default is unchanged
+// 2. No config: DEFAULT_CANON_ROOTS project surface (not a whole-tree walk)
 // ==========================================================================
 
-describe('canon-path scoping — no `.ba/config.yaml` (backward compatibility)', () => {
+describe('canon-path scoping — no `.ba/config.yaml` (default project surface)', () => {
   it('readCanonConfig returns undefined', () => {
     const repo = makeRepo()
     expect(readCanonConfig(repo)).toBeUndefined()
   })
 
-  it('walkCanonFiles still walks the whole repo (existing-style fixture, no config)', () => {
+  it('walkCanonFiles scans DEFAULT_CANON_ROOTS (existing-style fixture, no config)', () => {
     const repo = makeRepo({
       product: { epic: 1, cr: 0, wp: 0, bug: 0, baselineSeq: {} },
       epics: { E1: { fr: 1, nfr: 0, br: 0 } },
@@ -241,6 +241,48 @@ describe('canon-path scoping — no `.ba/config.yaml` (backward compatibility)',
     const files = walkCanonFiles(repo)
 
     expect(files).toContain(frPath)
+  })
+
+  it('does not ingest prose outside the default surface', () => {
+    const repo = makeRepo({
+      product: { epic: 1, cr: 0, wp: 0, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    const frPath = seedFr(repo, 'E1-FR1', 'E1')
+    const prosePath = seedProse(repo, join('process', 'adlc.md'))
+
+    const files = walkCanonFiles(repo)
+
+    expect(files).toContain(frPath)
+    expect(files).not.toContain(prosePath)
+  })
+
+  it('never walks node_modules even when it contains malformed Markdown/YAML', async () => {
+    const repo = makeRepo({
+      product: { epic: 1, cr: 0, wp: 0, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedFr(repo, 'E1-FR1', 'E1')
+    // Deliberately malformed frontmatter — the exact class of defect that
+    // external alpha acceptance hit under node_modules/@praxis/architect.
+    seedRaw(
+      repo,
+      join('node_modules', '@praxis', 'architect', 'skills', 'nfr-budget', 'SKILL.md'),
+      '---\nname: nfr-budget\ndescription: Define an NFR budget: metric, limit, how and when it is verified (WBS 4.10).\n---\n\n# Broken\n',
+    )
+    seedRaw(repo, join('dist', 'notes.md'), '---\ntitle: not canon\n---\n\nGenerated.\n')
+
+    const files = walkCanonFiles(repo)
+    expect(files.every((f) => !f.includes(`${sep}node_modules${sep}`))).toBe(true)
+    expect(files.every((f) => !f.includes(`${sep}dist${sep}`))).toBe(true)
+
+    const result = await runCli(['validate'], { repo })
+    expect(result.json.verdict).toBe('VERIFY-OK')
+    const schemaCheck = result.json.checks.find((c) => c.name === 'schema-valid')
+    expect(schemaCheck?.ok).toBe(true)
+    expect(schemaCheck?.reason).not.toMatch(/node_modules|nfr-budget/)
   })
 
   it('validate still resolves an existing-style (no-config) fixture exactly as before', async () => {

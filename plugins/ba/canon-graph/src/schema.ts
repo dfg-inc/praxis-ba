@@ -212,9 +212,9 @@ export const countersSchema = z.object({
 // repo-relative paths — a single file (`vision.md`) or a directory
 // (`epics/`, `br/`, `cr/`, `wp/`, `bugs/`) — that canon discovery
 // (`fs.ts`'s `walkCanonFiles`) scans EXCLUSIVELY when this file is present.
-// A repo with no `.ba/config.yaml` at all (every pre-existing Plan-1
-// fixture/repo) keeps the ORIGINAL default: walk every `.md` under the repo
-// except `.ba/` and `baselines/` — this schema/file is purely additive. Real
+// A repo with no `.ba/config.yaml` at all uses `fs.ts`'s DEFAULT_CANON_ROOTS
+// (vision/epics/br/cr/wp/bugs/goals) — never a whole-tree walk. This
+// schema/file is additive for repos that need a custom surface. Real
 // `product/` mixes VitePress prose (`process/`, `architecture/`, …) with
 // canon, so a migrated repo seeds this file (`migrate.ts`) to scope
 // `validate`/`loadGraph`/the VitePress loaders to just the canon roots.
