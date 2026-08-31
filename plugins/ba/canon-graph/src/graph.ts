@@ -287,7 +287,14 @@ export function buildGraph(pages: ParsedPage[], paths?: ReadonlyMap<ParsedPage, 
 
     danglingRefs(): DanglingRef[] {
       return edges
-        .filter(({ to }) => !idIndex.has(to))
+        .filter(({ to }) => {
+          if (idIndex.has(to)) return false
+          // Project-catalogue NFR ids are not graph nodes.
+          if (/^[A-Z][A-Z0-9]{1,9}-NFR-\d{3}$/.test(to) && !/^E\d+-NFR\d+$/.test(to)) {
+            return false
+          }
+          return true
+        })
         .sort((a, b) => naturalCompare(a.from, b.from) || naturalCompare(a.to, b.to))
     },
 
@@ -303,7 +310,10 @@ export function buildGraph(pages: ParsedPage[], paths?: ReadonlyMap<ParsedPage, 
         const fr = frById.get(frId)
         if (!fr) continue // a dangling Delivers ref: no enforces/references_nfr to fold in
         for (const br of fr.frontmatter.enforces) brSet.add(br)
-        for (const nfr of fr.frontmatter.references_nfr) nfrSet.add(nfr)
+        for (const nfr of fr.frontmatter.references_nfr) {
+          // Only canon NFR nodes participate in closure status checks.
+          if (/^E\d+-NFR\d+$/.test(nfr)) nfrSet.add(nfr)
+        }
       }
       return {
         // Deliberately NOT deduped (matches the pre-v3 `fr_ids` behavior) —

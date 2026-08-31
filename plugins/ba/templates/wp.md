@@ -30,9 +30,7 @@ is required IN PRACTICE — `wp prepare` hard-requires every Delivers FR's
 (wp-scope-crs-confirmed), so a WP without it cannot pass the gate. Only
 `### Constraints` (NFR/BR links this WP touches without an FR already
 carrying them) is genuinely optional. Every link's path must equal
-`<link_root>/<the page's real canon-relative path>` (`link_root` is
-`.ba/config.yaml`'s configured value — `product` in this monorepo, its
-canon root's own folder name); a version suffix (` vN`) is required
+a path **relative to this WP file** (e.g. `../../epics/E1-x/E1-FR1.md`); a version suffix (` vN`) is required
 whenever the target is `baselined`. The sentinel links below are
 FORMAT-VALID PLACEHOLDERS ONLY — `wp prepare` will fail its link-integrity
 check until every one is swapped for a real ref. -->
@@ -42,10 +40,10 @@ State the short goal/intent this work package delivers — a sentence or two.
 ## Scope
 
 ### Change requests
-- [CR-001](product/cr/CR-001.md)
+- [CR-001](../../cr/CR-001.md)
 
 ### Delivers
-- [E1-FR1 v1](product/epics/E1-template-epic/E1-FR1.md#acceptance-criteria)
+- [E1-FR1 v1](../../epics/E1-template-epic/E1-FR1.md#acceptance-criteria)
 
 ### Constraints
-- [E1-NFR1 v1](product/epics/E1-template-epic/E1-NFR1.md#planguage)
+- [E1-NFR1 v1](../../epics/E1-template-epic/E1-NFR1.md#planguage)

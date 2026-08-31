@@ -19,6 +19,7 @@
 // upstream `acs` array already reflects validity.
 
 import type { z } from 'zod'
+import { dirname, relative } from 'node:path'
 import type { Graph, GraphNode } from './graph.js'
 import { parseAcBlock, unverifiableAcIds } from './ac.js'
 import { pageAnchors } from './scopelinks.js'
@@ -70,42 +71,46 @@ function toVerdict(checks: Check[]): Verdict {
 // `definitionOfReady`'s own `wp-scope-links`/`wp-scope-version-current`
 // checks below are now thin wrappers over the same two functions. ----
 
+/** File-relative Scope href from a WP page to a target page (POSIX). */
+export function expectedScopeHref(wpRelPath: string, targetRelPath: string): string {
+  return relative(dirname(wpRelPath), targetRelPath).split('\\').join('/')
+}
+
 /** `wp-scope-links`: every ref across all four Scope buckets must (a) carry
  * no `parseScope` grammar error, (b) resolve to a real node in the graph,
- * (c) declare a `path` matching `${linkRoot}/${pathOf(id)}` exactly, and
- * (d) — when a `#anchor` is present — name a heading that actually exists on
- * the target page (scopelinks.ts's `pageAnchors`). Version stamps are
- * deliberately OUT of this helper — `scopeVersionIssues` below is the
- * separate check that differs by WP-status (accepted WPs are exempt there,
- * never here). */
-export function scopeLinkIssues(graph: Graph, wpId: string, linkRoot: string): string[] {
+ * (c) declare a **file-relative** `path` matching {@link expectedScopeHref}
+ * from the WP index, and (d) — when a `#anchor` is present — name a heading
+ * that actually exists on the target page.
+ *
+ * `linkRoot` is retained for call-site compatibility but unused for path
+ * matching — repo-root `link_root/...` hrefs break under `wp/<id>/`. */
+export function scopeLinkIssues(graph: Graph, wpId: string, _linkRoot?: string): string[] {
   const frById = byId(graph.frs)
   const nfrById = byId(graph.nfrs)
   const brById = byId(graph.brs)
   const crById = byId(graph.crs)
   const scope = graph.wpScope(wpId)
+  const wpRelPath = graph.pathOf(wpId)
 
   const issues: string[] = [...scope.errors]
+  if (wpRelPath === undefined) {
+    throw new Error(
+      `scopeLinkIssues: pathOf returned undefined for WP ${wpId} — Graph was built without a paths map`,
+    )
+  }
   for (const ref of [...scope.crs, ...scope.frs, ...scope.nfrs, ...scope.brs]) {
     const target = crById.get(ref.id) ?? frById.get(ref.id) ?? nfrById.get(ref.id) ?? brById.get(ref.id)
     if (!target) {
       issues.push(`${ref.id}: Scope link does not resolve to any node in the graph`)
       continue
     }
-    // Invariant (finding #25): a resolved target's path must be present — a
-    // `Graph` built WITHOUT a `paths` map (`buildGraph`'s 2nd argument
-    // omitted) can never legitimately reach this line via either real call
-    // path (`writer.ts`'s `loadGraph`/`cli.ts`'s `validate` always populate
-    // `paths`) — degrading silently to `${linkRoot}/` would turn a
-    // Graph-construction bug into a confusing wall of path-mismatch reasons
-    // instead of a loud, diagnosable failure.
     const targetPath = graph.pathOf(ref.id)
     if (targetPath === undefined) {
       throw new Error(
-        `scopeLinkIssues: pathOf returned undefined for resolved node ${ref.id} — Graph was built without a paths map`
+        `scopeLinkIssues: pathOf returned undefined for resolved node ${ref.id} — Graph was built without a paths map`,
       )
     }
-    const expectedPath = `${linkRoot}/${targetPath}`
+    const expectedPath = expectedScopeHref(wpRelPath, targetPath)
     if (ref.path !== expectedPath) {
       issues.push(`${ref.id}: Scope link path '${ref.path}' does not match expected '${expectedPath}'`)
     }

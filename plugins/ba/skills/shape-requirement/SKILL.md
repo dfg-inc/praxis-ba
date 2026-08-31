@@ -13,14 +13,14 @@ description: Use once a CR's entry point is confirmed and its impact set names a
 2. `praxis-ba id next --scope fr:E1 --repo <canon-dir>` (or `nfr:E1` / `br:E1`) → mints and persists the next id (e.g. `E1-FR9`); the ledger advances immediately.
 3. **Write** the page directly from the matching template (`.claude/plugins/praxis-ba/templates/fr.md` / `nfr.md` / `br.md`):
    - locate the epic's existing directory (list `<repo>/epics/` for the `E{n}` or `E{n}-*` match) for fr/nfr — write to `<that-dir>/<id>.md`; br is flat — write to `<repo>/br/<id>.md`.
-   - replace the sentinel `id`/`epic`; set `traces_to: [<the confirmed CR id>]` (fr/nfr) so `definitionOfReady` can resolve it later; fill `enforces`/`references_nfr` (fr), or `verified_by` (nfr), or `kind`/`enforcement` (br) as known; set `goal_ids: [<G#>]` when a goal exists (skill `goals`); leave `status: draft`, `version: 1`.
+   - replace the sentinel `id`/`epic`; set `traces_to: [<the confirmed CR id>]` (fr/nfr) so `definitionOfReady` can resolve it later; fill `enforces`/`references_nfr` (fr), or `verified_by` (nfr), or `kind`/`enforcement` (br) as known — when Rationale cites project NFR catalogue ids (`PXT-NFR-001`) or canon `E#-NFR#`, those ids must appear in `references_nfr` (the CLI also merges body mentions on `req edit`); set `goal_ids: [<G#>]` when a goal exists (skill `goals`); leave `status: draft`, `version: 1`.
    - fr body: the user story + a well-formed `## Acceptance Criteria` block (`- AC-N: given…, when…, then…` or `Дано… / Когда… / Тогда…`, ids unique within the page) + `## Rationale`. nfr body: the `## Planguage` block (Tag/Scale/Meter/Goal) + `## Rationale`. br body: one declarative sentence + `**Example:**` + `**Source:**`.
 4. `praxis-ba fmt <path> --repo <canon-dir>` then `praxis-ba validate --check --repo <canon-dir>`.
 5. When the human is satisfied with the drafted body, **activate** it — it is still `draft` at this point, not yet eligible for `wp prepare` (`definitionOfReady` hard-requires `status: active`):
    ```
-   praxis-ba req edit --repo <canon-dir> --req <id> --body-file <same-body-file> --activate
+   praxis-ba req edit --repo <canon-dir> --req <id> --body-file <body-only-or-full-page> --activate
    ```
-   No `--cr`/`--date` needed here — `--activate` is legal only when the current status is `draft`, and no version bump / `## History` applies to a pre-baseline item.
+   `--body-file` may be body-only **or** a full page; the CLI strips a leading frontmatter fence so a second YAML block is never written. No `--cr`/`--date` needed here — `--activate` is legal only when the current status is `draft`, and no version bump / `## History` applies to a pre-baseline item.
 6. **Realize** the impact entry against the CR, so the CR's own record shows this spawn is fulfilled:
    ```
    praxis-ba cr realize --repo <canon-dir> --cr <cr-id> --spawn <E#>:<fr|nfr|br> --id <new-id>

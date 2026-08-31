@@ -342,14 +342,14 @@ describe('migrateV3 — WP folder moves + Scope generation', () => {
       '## Scope',
       '',
       '### Change requests',
-      `- [CR-001](${linkRoot}/cr/CR-001.md)`,
+      `- [CR-001](../../cr/CR-001.md)`,
       '',
       '### Delivers',
-      `- [E1-FR1 v2](${linkRoot}/epics/E1-x/E1-FR1.md#acceptance-criteria)`,
+      `- [E1-FR1 v2](../../epics/E1-x/E1-FR1.md#acceptance-criteria)`,
       '',
       '### Constraints',
-      `- [E1-BR1 v1](${linkRoot}/br/E1-BR1.md)`,
-      `- [E1-NFR1 v1](${linkRoot}/epics/E1-x/E1-NFR1.md#planguage)`,
+      `- [E1-BR1 v1](../../br/E1-BR1.md)`,
+      `- [E1-NFR1 v1](../../epics/E1-x/E1-NFR1.md#planguage)`,
     ].join('\n')
     expect(readBody(canonDir, 'wp/WP-20260701-001/index.md', 'wp').trim()).toBe(expectedBody.trim())
   })
@@ -362,8 +362,8 @@ describe('migrateV3 — WP folder moves + Scope generation', () => {
 
     const body = readBody(canonDir, 'wp/WP-20260701-002/index.md', 'wp')
     expect(body).not.toContain('### Change requests') // E1-FR2 traces to no CR
-    expect(body).toContain(`- [E1-FR2 v1](${linkRoot}/epics/E1-x/E1-FR2.md)`) // no AC anchor on E1-FR2
-    expect(body).toContain(`- [E1-BR2 v1](${linkRoot}/br/E1-BR2.md)`) // extra_brs flowed through
+    expect(body).toContain(`- [E1-FR2 v1](../../epics/E1-x/E1-FR2.md)`) // no AC anchor on E1-FR2
+    expect(body).toContain(`- [E1-BR2 v1](../../br/E1-BR2.md)`) // extra_brs flowed through
 
     // dangling plan: left unchanged, no move attempted
     const fm = readFm(canonDir, 'wp/WP-20260701-002/index.md', 'wp')

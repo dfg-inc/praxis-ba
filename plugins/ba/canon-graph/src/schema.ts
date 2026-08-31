@@ -5,6 +5,8 @@ import type { NodeType, Status } from './types.js'
 export const EPIC_ID = /^E\d+$/
 export const FR_ID = /^E\d+-FR\d+$/
 export const NFR_ID = /^E\d+-NFR\d+$/
+/** Project catalogue NFR ids (e.g. PXT-NFR-001 in shared/nfr.md). */
+export const CATALOG_NFR_ID = /^[A-Z][A-Z0-9]{1,9}-NFR-\d{3}$/
 export const BR_ID = /^E\d+-BR\d+$/
 export const CR_ID = /^CR-\d{3}$/
 export const WP_ID = /^WP-\d{8}-\d{3}$/
@@ -36,7 +38,8 @@ export const frSchema = z.object({
   version: z.number().int().min(1),
   traces_to: z.array(z.string().regex(CR_ID)),
   enforces: z.array(z.string().regex(BR_ID)),
-  references_nfr: z.array(z.string().regex(NFR_ID)),
+  // Canon NFR nodes (E#-NFR#) and/or project-catalogue ids (KEY-NFR-NNN).
+  references_nfr: z.array(z.union([z.string().regex(NFR_ID), z.string().regex(CATALOG_NFR_ID)])),
   related: z.array(z.string()),
   // Optional goals layer (WBS 1.11): FR↔goal link; absent means unlinked.
   goal_ids: z.array(z.string().regex(GOAL_ID)).optional(),

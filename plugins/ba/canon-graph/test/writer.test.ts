@@ -17,6 +17,7 @@ import { parseFile } from '../src/parse'
 import { historyCrRefs } from '../src/history'
 import { readCounters, type Counters } from '../src/ids'
 import type { Status } from '../src/types'
+import { bodyHasLeadingFrontmatterFence } from '../src/body-refs'
 import * as reconcileModule from '../src/reconcile'
 
 // finding #23: `editRequirement`'s gap-fix reconcile trigger is dynamically
@@ -935,6 +936,7 @@ describe('realizeCrSpawn', () => {
 describe('setStatus', () => {
   const cases: Array<[Status, Status]> = [
     ['draft', 'active'],
+    ['draft', 'batched'],
     ['active', 'batched'],
     ['batched', 'baselined'],
     ['batched', 'active'],
@@ -972,6 +974,71 @@ describe('setStatus', () => {
   it('rejects a non-requirement id', async () => {
     const repo = makeRepo()
     await expect(setStatus(repo, 'CR-001', 'active')).rejects.toThrow(/not a requirement id/)
+  })
+
+  it('draft → batched mutates the existing frontmatter and never prepends a second YAML block', async () => {
+    const repo = makeRepo()
+    seedFr(repo, 'E1-FR1', 'E1', {
+      status: 'draft',
+      body: '## Rationale\nDepends on PXT-NFR-001 and E1-NFR2.\n\n## Acceptance Criteria\n- AC-1: given a, when b, then c.\n',
+    })
+    await setStatus(repo, 'E1-FR1', 'batched')
+    const raw = readFileSync(join(repo, 'epics/E1-x/E1-FR1.md'), 'utf8')
+    expect(raw.match(/^---$/gm)?.length).toBe(2)
+    expect(raw).not.toMatch(/\n---\n[\s\S]*?\n---\n---/)
+    const parsed = parseFile(join(repo, 'epics/E1-x/E1-FR1.md'), 'fr')
+    if ('error' in parsed) throw new Error(parsed.error)
+    expect(parsed.frontmatter).toMatchObject({ status: 'batched' })
+    expect((parsed.frontmatter as { references_nfr: string[] }).references_nfr).toEqual([
+      'E1-NFR2',
+      'PXT-NFR-001',
+    ])
+    expect(bodyHasLeadingFrontmatterFence(parsed.body)).toBe(false)
+  })
+
+  it('heals a stale duplicate frontmatter fence left in the body on status transition', async () => {
+    const repo = makeRepo()
+    seedRaw(
+      repo,
+      'epics/E1-x/E1-FR1.md',
+      [
+        '---',
+        'id: E1-FR1',
+        'type: fr',
+        'epic: E1',
+        'status: draft',
+        'version: 1',
+        'traces_to: []',
+        'enforces: []',
+        'references_nfr: []',
+        'related: []',
+        '---',
+        '',
+        '---',
+        'id: E1-FR1',
+        'type: fr',
+        'epic: E1',
+        'status: draft',
+        'version: 1',
+        'traces_to: []',
+        'enforces: []',
+        'references_nfr: []',
+        'related: []',
+        '---',
+        '',
+        '## Rationale',
+        'Needs PXT-NFR-002.',
+        '',
+      ].join('\n'),
+    )
+    await setStatus(repo, 'E1-FR1', 'batched')
+    const raw = readFileSync(join(repo, 'epics/E1-x/E1-FR1.md'), 'utf8')
+    expect(raw.match(/^---$/gm)?.length).toBe(2)
+    const parsed = parseFile(join(repo, 'epics/E1-x/E1-FR1.md'), 'fr')
+    if ('error' in parsed) throw new Error(parsed.error)
+    expect(parsed.frontmatter).toMatchObject({ status: 'batched' })
+    expect((parsed.frontmatter as { references_nfr: string[] }).references_nfr).toContain('PXT-NFR-002')
+    expect(bodyHasLeadingFrontmatterFence(parsed.body)).toBe(false)
   })
 })
 

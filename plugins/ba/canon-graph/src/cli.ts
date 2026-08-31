@@ -55,11 +55,12 @@
 import { existsSync, readFileSync, readdirSync, type Dirent } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { userInfo } from 'node:os'
-import { basename, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
 import { z } from 'zod'
 import { parse as yamlParse } from 'yaml'
 import { parseAcBlock } from './ac.js'
+import { bodyHasLeadingFrontmatterFence, extractNfrMentions } from './body-refs.js'
 import { formatFile, formatText } from './fmt.js'
 import { readCanonConfig, walkCanonFiles } from './fs.js'
 import { buildGraph, type Graph } from './graph.js'
@@ -430,6 +431,27 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
       const fm = parsed.frontmatter as Record<string, unknown>
       if (fm.status !== 'ready') {
         throw new Error(`wp approve-plan: ${wpId} status is '${String(fm.status)}', expected 'ready'`)
+      }
+      // Hard gate: structural + semantic validation must execute and PASS
+      // before plan-approved. Use the same check set as `validate` (not
+      // `--check` round-trip/idempotency extras). Never soft-downgrade.
+      const validation = await validate(repo, false)
+      if (validation.code !== 0) {
+        return {
+          code: 1,
+          json: {
+            id: wpId,
+            verdict: 'VERIFY-FAIL',
+            checks: [
+              {
+                name: 'pre-approve-validate',
+                ok: false,
+                reason: 'wp approve-plan blocked: praxis-ba validate must PASS before plan-approved',
+              },
+              ...validation.json.checks,
+            ],
+          },
+        }
       }
       setWpFrontmatter(repo, wpId, { status: 'plan-approved', plan })
       return ok('wp-approve-plan', `${wpId} is plan-approved (plan: ${plan})`, { id: wpId, path })
@@ -1211,6 +1233,59 @@ function historyAnchorDuplicateIssues(graph: Graph): string[] {
   return issues
 }
 
+function duplicateFrontmatterIssues(graph: Graph): string[] {
+  const issues: string[] = []
+  for (const nodes of [graph.frs, graph.nfrs, graph.brs, graph.wps, graph.crs]) {
+    for (const node of nodes) {
+      if (bodyHasLeadingFrontmatterFence(node.body)) {
+        issues.push(`${node.frontmatter.id}: body starts with a YAML frontmatter fence (duplicate FM)`)
+      }
+    }
+  }
+  return issues
+}
+
+/** Body mentions of canon/catalogue NFR ids must appear in `references_nfr`. */
+function referencesNfrTraceabilityIssues(graph: Graph): string[] {
+  const issues: string[] = []
+  for (const fr of graph.frs) {
+    const { canon, catalog } = extractNfrMentions(fr.body)
+    const mentioned = [...canon, ...catalog]
+    if (mentioned.length === 0) continue
+    const declared = new Set(fr.frontmatter.references_nfr)
+    const missing = mentioned.filter((id) => !declared.has(id))
+    if (missing.length > 0) {
+      issues.push(
+        `${fr.frontmatter.id}: body mentions ${missing.join(', ')} but references_nfr omits them`,
+      )
+    }
+  }
+  return issues
+}
+
+function brokenMarkdownLinkIssues(repo: string, graph: Graph): string[] {
+  const issues: string[] = []
+  const linkRe = /\]\(([^)#]+\.md)(#[^)]*)?\)/g
+  for (const nodes of [graph.frs, graph.nfrs, graph.brs, graph.wps, graph.crs, graph.epics]) {
+    for (const node of nodes) {
+      const rel = graph.pathOf(node.frontmatter.id)
+      if (!rel) continue
+      const absDir = dirname(join(repo, rel))
+      for (const m of node.body.matchAll(linkRe)) {
+        const href = m[1]!
+        if (href.includes('{') || href.includes('XXX')) continue
+        // Only check relative / same-tree links (not https://).
+        if (/^[a-z]+:\/\//i.test(href)) continue
+        const target = join(absDir, href)
+        if (!existsSync(target)) {
+          issues.push(`${node.frontmatter.id}: broken link (${href}) from ${rel}`)
+        }
+      }
+    }
+  }
+  return issues
+}
+
 async function validate(repo: string, check: boolean): Promise<CliResult> {
   const results = walkCorpus(repo)
   const validPages = results.filter(isValid)
@@ -1262,6 +1337,9 @@ async function validate(repo: string, check: boolean): Promise<CliResult> {
   const crImpactsConsistentIssueList = crImpactsConsistentIssues(graph)
   const crCitationsDeclaredIssueList = crCitationsDeclaredIssues(graph)
   const historyAnchorIssueList = historyAnchorDuplicateIssues(graph)
+  const duplicateFrontmatterIssueList = duplicateFrontmatterIssues(graph)
+  const brokenMarkdownLinkIssueList = brokenMarkdownLinkIssues(repo, graph)
+  const referencesNfrTraceabilityIssueList = referencesNfrTraceabilityIssues(graph)
 
   const checks: SeverityCheck[] = [
     {
@@ -1356,6 +1434,30 @@ async function validate(repo: string, check: boolean): Promise<CliResult> {
         historyAnchorIssueList.length === 0
           ? 'no fr/nfr/br page has a duplicate ##/### heading slug'
           : historyAnchorIssueList.join('; '),
+    },
+    {
+      name: 'no-duplicate-frontmatter',
+      ok: duplicateFrontmatterIssueList.length === 0,
+      reason:
+        duplicateFrontmatterIssueList.length === 0
+          ? 'no requirement body starts with a second YAML frontmatter fence'
+          : duplicateFrontmatterIssueList.join('; '),
+    },
+    {
+      name: 'markdown-links-resolve',
+      ok: brokenMarkdownLinkIssueList.length === 0,
+      reason:
+        brokenMarkdownLinkIssueList.length === 0
+          ? 'every relative .md link in the corpus resolves on disk'
+          : brokenMarkdownLinkIssueList.join('; '),
+    },
+    {
+      name: 'references-nfr-traceability',
+      ok: referencesNfrTraceabilityIssueList.length === 0,
+      reason:
+        referencesNfrTraceabilityIssueList.length === 0
+          ? 'every FR body NFR mention is declared in references_nfr'
+          : referencesNfrTraceabilityIssueList.join('; '),
     },
   ]
 

@@ -67,6 +67,7 @@ import { atomicWrite, crPath, loadGraph, wpPath } from './writer.js'
 import { BUG_ID, CR_ID, WP_ID, countersSchema, crImpactSchema, crSchema, wpSchema, type CrImpact } from './schema.js'
 import { pageAnchors, parseScope } from './scopelinks.js'
 import { emitPage, naturalCompare } from './serialize.js'
+import { expectedScopeHref } from './gates.js'
 import type { Check, Verdict } from './types.js'
 
 // ==========================================================================
@@ -227,10 +228,11 @@ type LegacyWpRefs = { frIds: string[]; extraBrs: string[]; extraNfrs: string[] }
  * reported as an advisory rather than aborting the whole migration — the
  * real corpus's `fr_ids` are internally consistent, but a hand-broken
  * fixture (or a stray typo six months from now) should degrade, not crash. */
-function buildScopeSection(graph: Graph, refs: LegacyWpRefs, linkRoot: string, wpId: string, advisories: string[]): string {
+function buildScopeSection(graph: Graph, refs: LegacyWpRefs, _linkRoot: string, wpId: string, advisories: string[]): string {
   const frById = new Map(graph.frs.map((n) => [n.frontmatter.id, n] as const))
   const nfrById = new Map(graph.nfrs.map((n) => [n.frontmatter.id, n] as const))
   const brById = new Map(graph.brs.map((n) => [n.frontmatter.id, n] as const))
+  const wpRelPath = `wp/${wpId}/index.md`
 
   const frIds = [...new Set(refs.frIds)].sort(naturalCompare)
   const crIds = new Set<string>()
@@ -246,17 +248,23 @@ function buildScopeSection(graph: Graph, refs: LegacyWpRefs, linkRoot: string, w
     }
     for (const cr of fr.frontmatter.traces_to) crIds.add(cr)
     for (const br of fr.frontmatter.enforces) brIds.add(br)
-    for (const nfr of fr.frontmatter.references_nfr) nfrIds.add(nfr)
+    for (const nfr of fr.frontmatter.references_nfr) {
+      if (/^E\d+-NFR\d+$/.test(nfr)) nfrIds.add(nfr)
+    }
     const path = graph.pathOf(frId)
     if (!path) {
       advisories.push(`${wpId}: FR '${frId}' has no resolvable canon path — omitted from Delivers`)
       continue
     }
     const anchor = pageAnchors(fr.body).has('acceptance-criteria') ? '#acceptance-criteria' : ''
-    deliversLines.push(`- [${frId} v${fr.frontmatter.version}](${linkRoot}/${path}${anchor})`)
+    deliversLines.push(
+      `- [${frId} v${fr.frontmatter.version}](${expectedScopeHref(wpRelPath, path)}${anchor})`,
+    )
   }
 
-  const crLines = [...crIds].sort(naturalCompare).map((crId) => `- [${crId}](${linkRoot}/cr/${crId}.md)`)
+  const crLines = [...crIds]
+    .sort(naturalCompare)
+    .map((crId) => `- [${crId}](${expectedScopeHref(wpRelPath, `cr/${crId}.md`)})`)
 
   const constraintIds = [...new Set([...nfrIds, ...brIds])].sort(naturalCompare)
   const constraintLines: string[] = []
@@ -270,14 +278,18 @@ function buildScopeSection(graph: Graph, refs: LegacyWpRefs, linkRoot: string, w
         continue
       }
       const anchor = pageAnchors(nfr.body).has('planguage') ? '#planguage' : ''
-      constraintLines.push(`- [${id} v${nfr.frontmatter.version}](${linkRoot}/${path}${anchor})`)
+      constraintLines.push(
+        `- [${id} v${nfr.frontmatter.version}](${expectedScopeHref(wpRelPath, path)}${anchor})`,
+      )
     } else if (br) {
       const path = graph.pathOf(id)
       if (!path) {
         advisories.push(`${wpId}: BR '${id}' has no resolvable canon path — omitted from Constraints`)
         continue
       }
-      constraintLines.push(`- [${id} v${br.frontmatter.version}](${linkRoot}/${path})`)
+      constraintLines.push(
+        `- [${id} v${br.frontmatter.version}](${expectedScopeHref(wpRelPath, path)})`,
+      )
     } else {
       advisories.push(`${wpId}: Constraints ref '${id}' does not resolve to any NFR/BR — omitted`)
     }

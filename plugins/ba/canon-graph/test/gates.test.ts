@@ -21,7 +21,7 @@ import { definitionOfReady, acceptGate, type VerifyEvidence } from '../src/gates
 // the ids `graph.closure` extracts — so every fixture below is built through
 // `graphFrom` (a `buildGraph` wrapper that also populates the `paths` map
 // Task 4 added) and `wp()` (which renders Scope links whose `path` is
-// `${LINK_ROOT}/${the same canon-relative path graphFrom assigns}`), so a
+// `../../${the same canon-relative path graphFrom assigns}`), so a
 // "green" fixture is Scope-link-correct BY CONSTRUCTION.
 
 function page(raw: string, type: Parameters<typeof parsePage>[1]): ParsedPage {
@@ -74,7 +74,7 @@ function fr(opts: {
 // v3 (Task 7): the canon-relative path every fixture id resolves to, mirroring
 // the real per-type layout (schema.ts's own path comments) — the SAME
 // convention `graphFrom`'s `paths` map and `wp()`'s Scope link `path`s both
-// use, so a fixture's Scope link matches `${LINK_ROOT}/${graph.pathOf(id)}`
+// use, so a fixture's Scope link matches `../../${graph.pathOf(id)}`
 // by construction rather than by coincidence.
 const LINK_ROOT = 'product'
 function epicFolder(id: string): string {
@@ -107,6 +107,7 @@ function graphFrom(pages: ParsedPage[]): Graph {
     else if (fm.type === 'fr') paths.set(p, frRelPath(fm.id))
     else if (fm.type === 'nfr') paths.set(p, nfrRelPath(fm.id))
     else if (fm.type === 'br') paths.set(p, brRelPath(fm.id))
+    else if (fm.type === 'wp') paths.set(p, `wp/${fm.id}/index.md`)
   }
   return buildGraph(pages, paths)
 }
@@ -115,12 +116,12 @@ function graphFrom(pages: ParsedPage[]): Graph {
 // link list, not frontmatter (`fr_ids` is retired) — mechanical flip, same
 // call-site shape every test in this file already uses. v3 (Task 7): also
 // renders an optional `### Change requests` bucket (`opts.crIds`), and every
-// link's `path` is `${LINK_ROOT}/${the real canon-relative path}` — matching
+// link's `path` is `../../${the real canon-relative path}` — matching
 // exactly what `graphFrom`'s `paths` map assigns, so `wp-scope-links` passes
 // on a fixture that hasn't deliberately broken something.
 function wp(id: string, status: string, frIds: string[], opts: { crIds?: string[] } = {}): ParsedPage {
-  const deliversLines = frIds.map((f) => `- [${f}](${LINK_ROOT}/${frRelPath(f)})`).join('\n')
-  const crLines = (opts.crIds ?? []).map((c) => `- [${c}](${LINK_ROOT}/${crRelPath(c)})`).join('\n')
+  const deliversLines = frIds.map((f) => `- [${f}](../../${frRelPath(f)})`).join('\n')
+  const crLines = (opts.crIds ?? []).map((c) => `- [${c}](../../${crRelPath(c)})`).join('\n')
   const body = [
     'A work package.',
     '',
@@ -480,7 +481,7 @@ describe('definitionOfReady', () => {
 
   // ---- v3 (Task 7): the four new Scope-link-integrity checks ----
 
-  it('wp-scope-links fails on a Delivers link whose path does not match `${linkRoot}/${pathOf(id)}`', () => {
+  it('wp-scope-links fails on a Delivers link whose path does not match `../../${pathOf(id)}`', () => {
     const pages = [
       cr(CR_ID, 'confirmed'),
       br(BR_ID, 'active'),
@@ -494,7 +495,7 @@ describe('definitionOfReady', () => {
         body: WELL_FORMED_AC_BODY,
       }),
       page(
-        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](${LINK_ROOT}/${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](wrong/path/${FR_ID}.md)\n`,
+        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](../../${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](wrong/path/${FR_ID}.md)\n`,
         'wp'
       ),
     ]
@@ -531,7 +532,7 @@ describe('definitionOfReady', () => {
         body: WELL_FORMED_AC_BODY,
       }),
       page(
-        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](${LINK_ROOT}/${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](${LINK_ROOT}/${frRelPath(FR_ID)}#no-such-anchor)\n`,
+        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](../../${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](../../${frRelPath(FR_ID)}#no-such-anchor)\n`,
         'wp'
       ),
     ]
@@ -558,7 +559,7 @@ describe('definitionOfReady', () => {
         body: WELL_FORMED_AC_BODY,
       }),
       page(
-        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](${LINK_ROOT}/${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID} v1](${LINK_ROOT}/${frRelPath(FR_ID)})\n`,
+        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID}](../../${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID} v1](../../${frRelPath(FR_ID)})\n`,
         'wp'
       ),
     ]
@@ -584,7 +585,7 @@ describe('definitionOfReady', () => {
         body: WELL_FORMED_AC_BODY,
       }),
       page(
-        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID} v1](${LINK_ROOT}/${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](${LINK_ROOT}/${frRelPath(FR_ID)})\n`,
+        `---\nid: ${WP_ID}\ntype: wp\nrole: developer\nstatus: ready\n---\n\nA work package.\n\n## Scope\n\n### Change requests\n\n- [${CR_ID} v1](../../${crRelPath(CR_ID)})\n\n### Delivers\n\n- [${FR_ID}](../../${frRelPath(FR_ID)})\n`,
         'wp'
       ),
     ]
@@ -624,7 +625,7 @@ describe('definitionOfReady', () => {
   // (both real call paths — `writer.ts`'s `loadGraph`, `cli.ts`'s `validate`
   // — always populate one) — `scopeLinkIssues` must fail LOUDLY (a thrown
   // invariant violation) rather than silently degrade every Scope link's
-  // expected path to `${linkRoot}/`.
+  // expected path to `../../`.
   it('scopeLinkIssues (via definitionOfReady) throws when the Graph was built without a paths map', () => {
     const g = buildGraph(greenPages())
     expect(() => definitionOfReady(g, WP_ID, true, { linkRoot: LINK_ROOT })).toThrow(/pathOf returned undefined/)

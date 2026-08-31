@@ -53,6 +53,10 @@ import { shouldBump } from './versiondiff.js'
 import { buildGraph, type Graph, type GraphNode } from './graph.js'
 import { acceptGate, type VerifyEvidence } from './gates.js'
 import {
+  mergeReferencesNfr,
+  stripAllLeadingFrontmatter,
+} from './body-refs.js'
+import {
   BR_ID,
   CR_ID,
   EPIC_ID,
@@ -203,7 +207,9 @@ function emitRequirement(type: RequirementType, frontmatter: Record<string, unkn
 const DATE_KEY = /^\d{8}$/
 
 const LEGAL_TRANSITIONS: Record<Status, ReadonlySet<Status>> = {
-  draft: new Set<Status>(['active', 'retired']),
+  // draft → batched: allowed so `wp prepare` can batch freshly authored
+  // members that were never activated; prefer activate-first in skills.
+  draft: new Set<Status>(['active', 'batched', 'retired']),
   active: new Set<Status>(['batched', 'retired']),
   // batched -> active is the `wp abandon` revert edge (§7); batched ->
   // baselined is `accept` (§8a). Both are future (Task 11+) call sites of
@@ -395,7 +401,10 @@ export type EditRequirementResult = { id: string; path: string; bumped: boolean 
  * predicate requires `baselined`); that item's eventual `accept` is what
  * reconciles the CR later, same as any other batched item. */
 export async function editRequirement(repo: string, input: EditRequirementInput): Promise<EditRequirementResult> {
-  const { id, body, cr, activate, date } = input
+  const { id, cr, activate, date } = input
+  // Strip a leading FM fence so `--body-file` may be a full page without
+  // creating a second YAML block on emit (acceptance defect).
+  const body = stripAllLeadingFrontmatter(input.body)
   const { type, path } = pathForRequirement(repo, id)
   const parsed = parseFile(path, type)
   if ('error' in parsed) throw new Error(`writer: failed to read ${id} at ${path}: ${parsed.error}`)
@@ -453,6 +462,19 @@ export async function editRequirement(repo: string, input: EditRequirementInput)
     nextFm.status = 'active'
   }
 
+  // Keep references_nfr aligned with explicit NFR mentions in the body
+  // (canon E#-NFR# and project-catalogue KEY-NFR-NNN).
+  if (type === 'fr') {
+    nextFm.references_nfr = mergeReferencesNfr(
+      nextFm.references_nfr as string[] | undefined,
+      nextBody,
+    )
+  }
+
+  // Heal a body that still starts with a YAML fence (duplicate-frontmatter
+  // smell from a prior bad edit) — never re-emit a second block.
+  nextBody = stripAllLeadingFrontmatter(nextBody)
+
   atomicWrite(path, emitRequirement(type, nextFm, nextBody))
 
   // Gap fix (post-Task-6): fire reconcile from HERE for a bump that lands on
@@ -503,8 +525,15 @@ export async function setStatus(repo: string, id: string, status: Status): Promi
   const fm = parsed.frontmatter as Record<string, unknown>
   const currentStatus = fm.status as Status
   assertLegalTransition(id, currentStatus, status)
-  const nextFm = { ...fm, status }
-  atomicWrite(path, emitRequirement(type, nextFm, parsed.body))
+  const nextFm: Record<string, unknown> = { ...fm, status }
+  let nextBody = stripAllLeadingFrontmatter(parsed.body)
+  if (type === 'fr') {
+    nextFm.references_nfr = mergeReferencesNfr(
+      nextFm.references_nfr as string[] | undefined,
+      nextBody,
+    )
+  }
+  atomicWrite(path, emitRequirement(type, nextFm, nextBody))
   return { id, path }
 }
 

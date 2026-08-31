@@ -9,13 +9,19 @@ A WP is a folder (`wp/<id>/index.md` — the same shape epics already use), neve
 
 ## What happens — authoring (HYBRID: direct Write, not `wp author`)
 
+`praxis-ba` is this plugin's CLI at `bin/praxis-ba.cjs`. Every `praxis-ba <verb>` below is shorthand for:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs <verb> …
+```
+
 1. `praxis-ba id next --scope wp --date <YYYYMMDD> --repo <canon-dir>` → mints and persists the next id (e.g. `WP-20260715-004`); `counters.product.wp` advances immediately.
 2. **Write** `<repo>/wp/<id>/index.md` directly from `.claude/plugins/praxis-ba/templates/wp.md`: replace the sentinel `id`; `role: developer|qa`; `status: draft`; a short goal/intent body, not the full plan; then the `## Scope` section:
    - `### Change requests` — required in practice: the confirmed CR(s) this WP delivers against. The gate below hard-requires every Delivers FR's `traces_to` to include at least one CR from THIS list (an FR tracing only to some CR the WP doesn't scope fails), and every CR listed here to be `confirmed`.
    - `### Delivers` — the real FR ids this WP delivers (every one must already be `status: active` — run `shape-requirement`'s activation step first if any is still `draft`).
    - `### Constraints` — optional: NFR/BR links this WP touches without a Delivers FR already carrying them.
 
-   Every link's path must be `<link_root>/<the page's real canon-relative path>` (e.g. `product/epics/E1-template-epic/E1-FR1.md#acceptance-criteria` — this monorepo's `.ba/config.yaml` explicitly sets `link_root: product`); a version suffix (`E1-FR1 v2`) is required whenever the target is `baselined`.
+   Every Scope link path must be **relative to the WP file** (e.g. `../../epics/E1-x/E1-FR1.md#acceptance-criteria`, `../../cr/CR-001.md`) — never a `canon/` or `link_root/` prefix that duplicates from `wp/<id>/`. A version suffix (`E1-FR1 v2`) is required whenever the target is `baselined`.
 3. `praxis-ba fmt <path> --repo <canon-dir>` then `praxis-ba validate --check --repo <canon-dir>`.
 
 The retired `wp author` verb MUST NOT be run — replaced by the `id next` + `Write` sequence above.
@@ -23,7 +29,7 @@ The retired `wp author` verb MUST NOT be run — replaced by the `id next` + `Wr
 ## The definition-of-ready gate
 
 ```
-praxis-ba wp prepare --repo <canon-dir> --wp <id>
+node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs wp prepare --repo <canon-dir> --wp <id>
 ```
 
 Blocks unless every check passes:
@@ -34,7 +40,7 @@ Blocks unless every check passes:
 - **every `### Change requests` CR is itself `confirmed`** (`wp-scope-crs-confirmed`);
 - every `enforces` BR resolves and isn't `retired`; every `references_nfr` NFR resolves, is `active`, and itself traces to a confirmed CR (the NFR→CR edge keeps the any-confirmed-CR form — it is not re-scoped to the WP);
 - no dangling ref in the closure;
-- link integrity: every `## Scope` link parses, resolves, path-matches `<link_root>/<real canon-relative path>` exactly, any `#anchor` names a real heading on the target page, and any ` vN` version stamp matches the target's CURRENT version (CR refs never carry version stamps).
+- link integrity: every `## Scope` link parses, resolves, and is a **file-relative** path from `wp/<id>/index.md` to the target (e.g. `../../epics/...`), any `#anchor` names a real heading on the target page, and any ` vN` version stamp matches the target's CURRENT version (CR refs never carry version stamps).
 
 On green it flips every `draft`/`active` closure member to `batched` and sets this WP's `status: ready` — the ready WP page itself is the handoff artifact; nothing else is generated. It does not partially apply on failure — fix the flagged FR/NFR/BR/CR state or Scope link and re-run.
 
@@ -51,9 +57,9 @@ Approving a WP's implementation plan is a human-only action (CLAUDE.md: "Human-o
 1. **AskUserQuestion**: "Approve this plan (`wp/<id>/plan.md`) for `<wp-id>`?" — never proceed on silence or an implicit assumption.
 2. On approval:
    ```
-   praxis-ba wp approve-plan --repo <canon-dir> --wp <id> --plan wp/<id>/plan.md
+   node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs wp approve-plan --repo <canon-dir> --wp <id> --plan wp/<id>/plan.md
    ```
-   Requires the WP to be `status: ready` (set by `wp prepare` above) and the plan to exist on disk at exactly that canon-relative path — `--plan` is rejected if it points anywhere else. Sets `status: plan-approved`, stamps `plan: wp/<id>/plan.md`.
+   Requires the WP to be `status: ready` (set by `wp prepare` above) and the plan to exist on disk at exactly that canon-relative path — `--plan` is rejected if it points anywhere else. `wp approve-plan` re-runs `validate` and refuses `plan-approved` on VERIFY-FAIL (never soft-downgrade to manual PASS). Sets `status: plan-approved`, stamps `plan: wp/<id>/plan.md`.
 
 ## Done when
 

@@ -95,25 +95,12 @@ function seedFr(
 // matching `epics/E{n}-slug/index.md`), not a flat `wp/<id>.md` file —
 // `writer.ts`'s exported `wpPath` is the one place this path is computed;
 // this fixture writer just mirrors it.
-// v3 (Task 7): `definitionOfReady`'s new `wp-scope-links`/`frs-trace-to-
-// scoped-cr` checks validate a Scope link's `path` against
-// `${linkRoot}/${graph.pathOf(id)}` and a Delivers FR's `traces_to` against
-// the WP's OWN `### Change requests` bucket — `resolveLinkRoot` (cli.ts)
-// falls back to `basename(resolve(repo))` when no `.ba/config.yaml`
-// `link_root` is configured (true of every fixture repo here), so a
-// Delivers link's path must be `${basename(repo)}/epics/<epic>-x/<id>.md`
-// (mirroring `seedFr`'s real on-disk path) to resolve correctly, and
-// `opts.crIds` renders the matching `### Change requests` bucket. Only the
-// `wp prepare` verb ever runs `definitionOfReady`, so getting this exactly
-// right only matters for that describe block — the other verbs
-// (approve-plan/abandon/accept) never read a Scope link's `path`/version, so
-// this fixture staying Scope-link-correct for all of them is free.
+// Scope paths are file-relative from `wp/<id>/index.md` (e.g. `../../epics/...`).
 function seedWp(repo: string, id: string, opts: { status?: string; frIds?: string[]; crIds?: string[] } = {}): string {
-  const linkRoot = basename(resolve(repo))
   const deliversLines = (opts.frIds ?? [])
-    .map((fr) => `- [${fr}](${linkRoot}/epics/${fr.split('-')[0]}-x/${fr}.md)`)
+    .map((fr) => `- [${fr}](../../epics/${fr.split('-')[0]}-x/${fr}.md)`)
     .join('\n')
-  const crLines = (opts.crIds ?? []).map((cr) => `- [${cr}](${linkRoot}/cr/${cr}.md)`).join('\n')
+  const crLines = (opts.crIds ?? []).map((cr) => `- [${cr}](../../cr/${cr}.md)`).join('\n')
   const lines = [
     '---',
     `id: ${id}`,
@@ -386,6 +373,25 @@ describe('req edit', () => {
     expect(result.code).toBe(0)
     expect(readFm(repo, 'br/E1-BR1.md', 'br').status).toBe('active')
   })
+
+  it('strips a full-page --body-file so draft→active never creates duplicate frontmatter', async () => {
+    const repo = makeRepo()
+    seedFr(repo, 'E1-FR1', 'E1', { status: 'draft', tracesTo: ['CR-001'] })
+    const fullPage = scratchFile(
+      `---\nid: E1-FR1\ntype: fr\nepic: E1\nstatus: draft\nversion: 1\ntraces_to: [CR-001]\nenforces: []\nreferences_nfr: []\nrelated: []\n---\n\n## Rationale\nDepends on PXT-NFR-001.\n\n## Acceptance Criteria\n- AC-1: given x, when y, then z.\n`,
+    )
+    const result = await runCli(
+      ['req', 'edit', '--req', 'E1-FR1', '--body-file', fullPage, '--activate'],
+      { repo },
+    )
+    expect(result.code).toBe(0)
+    const raw = readFileSync(join(repo, 'epics/E1-x/E1-FR1.md'), 'utf8')
+    expect(raw.match(/^---$/gm)?.length).toBe(2)
+    expect(raw).not.toMatch(/---\n[\s\S]*---\n---/)
+    const fm = readFm(repo, 'epics/E1-x/E1-FR1.md', 'fr') as { status: string; references_nfr: string[] }
+    expect(fm.status).toBe('active')
+    expect(fm.references_nfr).toContain('PXT-NFR-001')
+  })
 })
 
 describe('req retire', () => {
@@ -467,8 +473,15 @@ describe('wp prepare', () => {
 // path — every fixture below writes the plan file at that exact location.
 describe('wp approve-plan', () => {
   it('approves a ready WP whose plan file exists at the canon convention', async () => {
-    const repo = makeRepo()
-    seedWp(repo, 'WP-20260713-001', { status: 'ready', frIds: ['E1-FR1'] })
+    const repo = makeRepo({
+      product: { epic: 1, cr: 1, wp: 1, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedVision(repo, 'confirmed')
+    seedCr(repo, 'CR-001', 'confirmed')
+    seedFr(repo, 'E1-FR1', 'E1', { status: 'batched', tracesTo: ['CR-001'] })
+    seedWp(repo, 'WP-20260713-001', { status: 'ready', frIds: ['E1-FR1'], crIds: ['CR-001'] })
     seedRaw(repo, join('wp', 'WP-20260713-001', 'plan.md'), '# Plan\n')
 
     const result = await runCli(
@@ -477,6 +490,20 @@ describe('wp approve-plan', () => {
     )
     expect(result.code).toBe(0)
     expect(readFm(repo, 'wp/WP-20260713-001/index.md', 'wp').status).toBe('plan-approved')
+  })
+
+  it('refuses approval when validate fails (hard gate)', async () => {
+    const repo = makeRepo()
+    // Ready WP with a Scope link to a missing FR — validate must FAIL.
+    seedWp(repo, 'WP-20260713-001', { status: 'ready', frIds: ['E1-FR1'] })
+    seedRaw(repo, join('wp', 'WP-20260713-001', 'plan.md'), '# Plan\n')
+    const result = await runCli(
+      ['wp', 'approve-plan', '--wp', 'WP-20260713-001', '--plan', 'wp/WP-20260713-001/plan.md'],
+      { repo },
+    )
+    expect(result.code).toBe(1)
+    expect(result.json.verdict).toBe('VERIFY-FAIL')
+    expect(readFm(repo, 'wp/WP-20260713-001/index.md', 'wp').status).toBe('ready')
   })
 
   it('rejects a --plan path that does not follow the wp/<id>/plan.md convention', async () => {
@@ -946,8 +973,8 @@ describe('validate — v3 checks', () => {
         // anchor that exists on the target page (seedFr's default body has
         // `## Acceptance Criteria`), and a version stamp matching the
         // target's current version.
-        `- [E1-FR1 v1](${linkRoot}/epics/E1-x/E1-FR1.md#acceptance-criteria)`,
-        `- [CR-001](${linkRoot}/cr/CR-001.md)`
+        `- [E1-FR1 v1](../../epics/E1-x/E1-FR1.md#acceptance-criteria)`,
+        `- [CR-001](../../cr/CR-001.md)`
       )
     )
 
@@ -970,8 +997,8 @@ describe('validate — v3 checks', () => {
       wpIndexRaw(
         'WP-20260713-001',
         'draft',
-        `- [E1-FR1](${linkRoot}/epics/E1-x/E1-FR1.md#no-such-anchor)`,
-        `- [CR-001](${linkRoot}/cr/CR-001.md)`
+        `- [E1-FR1](../../epics/E1-x/E1-FR1.md#no-such-anchor)`,
+        `- [CR-001](../../cr/CR-001.md)`
       )
     )
 
@@ -988,8 +1015,8 @@ describe('validate — v3 checks', () => {
     seedCr(repo, 'CR-001', 'confirmed')
     seedFr(repo, 'E1-FR1', 'E1', { status: 'active', tracesTo: ['CR-001'], version: 2 })
     const linkRoot = basename(resolve(repo))
-    const crLine = `- [CR-001](${linkRoot}/cr/CR-001.md)`
-    const deliversLine = `- [E1-FR1 v1](${linkRoot}/epics/E1-x/E1-FR1.md)` // stale: current version is 2
+    const crLine = `- [CR-001](../../cr/CR-001.md)`
+    const deliversLine = `- [E1-FR1 v1](../../epics/E1-x/E1-FR1.md)` // stale: current version is 2
 
     seedRaw(repo, join('wp', 'WP-20260713-001', 'index.md'), wpIndexRaw('WP-20260713-001', 'draft', deliversLine, crLine))
     const draftResult = await runCli(['validate'], { repo })
@@ -1012,8 +1039,8 @@ describe('validate — v3 checks', () => {
     seedCr(repo, 'CR-001', 'confirmed')
     seedFr(repo, 'E1-FR1', 'E1', { status: 'active', tracesTo: ['CR-001'], version: 2 })
     const linkRoot = basename(resolve(repo))
-    const crLine = `- [CR-001](${linkRoot}/cr/CR-001.md)`
-    const deliversLine = `- [E1-FR1 v1](${linkRoot}/epics/E1-x/E1-FR1.md)` // stale: current version is 2
+    const crLine = `- [CR-001](../../cr/CR-001.md)`
+    const deliversLine = `- [E1-FR1 v1](../../epics/E1-x/E1-FR1.md)` // stale: current version is 2
 
     seedRaw(repo, join('wp', 'WP-20260713-001', 'index.md'), wpIndexRaw('WP-20260713-001', 'abandoned', deliversLine, crLine))
     const result = await runCli(['validate'], { repo })
@@ -1284,6 +1311,117 @@ describe('validate — v3 checks', () => {
     const check = result.json.checks.find((c) => c.name === 'history-anchor-unique')
     expect(check?.ok).toBe(false)
     expect(check?.reason).toMatch(/history/)
+  })
+
+  it('markdown-links-resolve fails when a WP Scope href duplicates a canon/ prefix', async () => {
+    const repo = makeRepo({
+      product: { epic: 0, cr: 1, wp: 1, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedVision(repo, 'confirmed')
+    seedCr(repo, 'CR-001', 'confirmed')
+    seedFr(repo, 'E1-FR1', 'E1', { status: 'active', tracesTo: ['CR-001'] })
+    seedRaw(
+      repo,
+      join('wp', 'WP-20260713-001', 'index.md'),
+      wpIndexRaw(
+        'WP-20260713-001',
+        'draft',
+        `- [E1-FR1](../../canon/epics/E1-x/E1-FR1.md)`,
+        `- [CR-001](../../cr/CR-001.md)`,
+      ),
+    )
+    const result = await runCli(['validate'], { repo })
+    expect(result.code).toBe(1)
+    const links = result.json.checks.find((c) => c.name === 'markdown-links-resolve')
+    expect(links?.ok).toBe(false)
+    expect(links?.reason).toMatch(/broken link/)
+  })
+
+  it('markdown-links-resolve passes when every generated Scope href resolves on disk', async () => {
+    const repo = makeRepo({
+      product: { epic: 0, cr: 1, wp: 1, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedVision(repo, 'confirmed')
+    seedCr(repo, 'CR-001', 'confirmed')
+    seedFr(repo, 'E1-FR1', 'E1', { status: 'active', tracesTo: ['CR-001'] })
+    seedRaw(
+      repo,
+      join('wp', 'WP-20260713-001', 'index.md'),
+      wpIndexRaw(
+        'WP-20260713-001',
+        'draft',
+        `- [E1-FR1 v1](../../epics/E1-x/E1-FR1.md#acceptance-criteria)`,
+        `- [CR-001](../../cr/CR-001.md)`,
+      ),
+    )
+    const result = await runCli(['validate'], { repo })
+    const mdLinks = result.json.checks.find((c) => c.name === 'markdown-links-resolve')
+    expect(mdLinks?.ok, mdLinks?.reason).toBe(true)
+  })
+
+  it('no-duplicate-frontmatter fails when an FR body starts with a second YAML fence', async () => {
+    const repo = makeRepo({
+      product: { epic: 0, cr: 0, wp: 0, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedVision(repo, 'confirmed')
+    seedRaw(
+      repo,
+      'epics/E1-x/E1-FR1.md',
+      [
+        '---',
+        'id: E1-FR1',
+        'type: fr',
+        'epic: E1',
+        'status: batched',
+        'version: 1',
+        'traces_to: [CR-001]',
+        'enforces: []',
+        'references_nfr: []',
+        'related: []',
+        '---',
+        '',
+        '---',
+        'id: E1-FR1',
+        'type: fr',
+        'status: draft',
+        '---',
+        '',
+        'Story.',
+        '',
+      ].join('\n'),
+    )
+    seedCr(repo, 'CR-001', 'confirmed')
+    const result = await runCli(['validate'], { repo })
+    expect(result.code).toBe(1)
+    const check = result.json.checks.find((c) => c.name === 'no-duplicate-frontmatter')
+    expect(check?.ok).toBe(false)
+  })
+
+  it('references-nfr-traceability fails when rationale cites catalogue NFRs omitted from frontmatter', async () => {
+    const repo = makeRepo({
+      product: { epic: 0, cr: 1, wp: 0, bug: 0, baselineSeq: {} },
+      epics: { E1: { fr: 1, nfr: 0, br: 0 } },
+      retired: [],
+    })
+    seedVision(repo, 'confirmed')
+    seedCr(repo, 'CR-001', 'confirmed')
+    seedFr(repo, 'E1-FR1', 'E1', {
+      status: 'active',
+      tracesTo: ['CR-001'],
+      referencesNfr: [],
+      body: '## Rationale\nDepends on PXT-NFR-001.\n\n## Acceptance Criteria\n- AC-1: given a, when b, then c.\n',
+    })
+    const result = await runCli(['validate'], { repo })
+    expect(result.code).toBe(1)
+    const check = result.json.checks.find((c) => c.name === 'references-nfr-traceability')
+    expect(check?.ok).toBe(false)
+    expect(check?.reason).toMatch(/PXT-NFR-001/)
   })
 })
 

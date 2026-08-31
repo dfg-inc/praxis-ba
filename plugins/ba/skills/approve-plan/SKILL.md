@@ -16,12 +16,18 @@ This is the canonical form of the "approve WP → plan" human gate (CLAUDE.md: "
 
 1. Read the plan and summarize its shape to the human: what it delivers, the task breakdown, how it traces back to the WP's `## Scope` section.
 2. **AskUserQuestion**: "Approve this plan (`wp/<id>/plan.md`) for `<wp-id>`, or does it need changes first?" — a human decision only; an agent never self-approves a plan (the same posture as `accept` — machines write VERIFY-OK/FAIL, never the approval itself).
-3. On approval:
+3. On approval, run machine validation first (hard gate — do not skip; do not substitute manual review):
    ```
-   praxis-ba wp approve-plan --repo <canon-dir> --wp <id> --plan wp/<id>/plan.md
+   node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs validate --repo <canon-dir>
+   ```
+   Non-zero exit / VERIFY-FAIL → stop; fix findings; do not approve.
+4. Then:
+   ```
+   node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs wp approve-plan --repo <canon-dir> --wp <id> --plan wp/<id>/plan.md
    ```
    This is the ONLY writer of `status: plan-approved` and the `plan:` frontmatter field.
-4. On "needs changes", loop back to a plan revision — do not call `wp approve-plan` until a subsequent AskUserQuestion actually confirms approval.
+   The CLI re-validates structurally and refuses approval if validation fails.
+5. On "needs changes", loop back to a plan revision — do not call `wp approve-plan` until a subsequent AskUserQuestion actually confirms approval.
 
 ## Done when
 
