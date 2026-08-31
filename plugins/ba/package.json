@@ -9,7 +9,7 @@
     "test": "npm run test -w @praxis/ba-canon-graph"
   },
   "dependencies": {
-    "@praxis/plugin-sdk": "0.1.0"
+    "@praxis/plugin-sdk": "*"
   },
   "license": "Apache-2.0"
 }
