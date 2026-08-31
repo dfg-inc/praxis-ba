@@ -59,7 +59,10 @@ describe('plugin manifest — .claude/plugins/praxis-ba/.claude-plugin/plugin.js
     expect(typeof manifest.description).toBe('string')
     expect((manifest.description as string).length).toBeGreaterThan(0)
     expect(typeof manifest.version).toBe('string')
-    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/)
+    // SemVer 2.0 including prerelease (e.g. 0.1.0-alpha.2)
+    expect(manifest.version).toMatch(
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/,
+    )
   })
 
   it('names the plugin praxis-ba (Phase 1 rename from praxis-ba)', () => {
