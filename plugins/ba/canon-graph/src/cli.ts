@@ -76,6 +76,7 @@ import { crImpactsDelivered, requirementNodeIndex } from './reconcile.js'
 import { evaluateBaRules, loadBaRules } from './rules.js'
 import { fileURLToPath } from 'node:url'
 import { emitBaArchitectHandoff } from './handoff.js'
+import { runSemanticLint, semanticLintToChecks } from './semantic-lint.js'
 import {
   baselineManifestSchema,
   crImpactSchema,
@@ -444,10 +445,11 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
         throw new Error(`wp approve-plan: ${wpId} status is '${String(fm.status)}', expected 'ready'`)
       }
       // Hard gate: structural + semantic validation must execute and PASS
-      // before plan-approved. Use the same check set as `validate` (not
-      // `--check` round-trip/idempotency extras). Never soft-downgrade.
+      // (VERIFY-FAIL) before plan-approved. Advisory findings do not block
+      // (same posture as historical lint.py warnings). Use the same check
+      // set as `validate` (not `--check` round-trip extras).
       const validation = await validate(repo, false)
-      if (validation.code !== 0) {
+      if (validation.json.verdict !== 'VERIFY-OK') {
         return {
           code: 1,
           json: {
@@ -1357,6 +1359,8 @@ async function validate(repo: string, check: boolean): Promise<CliResult> {
   const duplicateFrontmatterIssueList = duplicateFrontmatterIssues(graph)
   const brokenMarkdownLinkIssueList = brokenMarkdownLinkIssues(repo, graph)
   const referencesNfrTraceabilityIssueList = referencesNfrTraceabilityIssues(graph)
+  const semantic = runSemanticLint(repo, graph)
+  const semanticChecks = semanticLintToChecks(semantic)
 
   const checks: SeverityCheck[] = [
     {
@@ -1476,6 +1480,8 @@ async function validate(repo: string, check: boolean): Promise<CliResult> {
           ? 'every FR body NFR mention is declared in references_nfr'
           : referencesNfrTraceabilityIssueList.join('; '),
     },
+    // Semantic body checks (formerly tools/lint.py 1–5) — Node-only, no Python.
+    ...semanticChecks,
   ]
 
   if (check) {

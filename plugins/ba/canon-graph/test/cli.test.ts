@@ -49,6 +49,15 @@ function seedRaw(repo: string, relPath: string, raw: string): string {
   return path
 }
 
+function seedEpic(repo: string, id: string, opts: { status?: string; title?: string } = {}): string {
+  const slug = `${id}-x`
+  return seedRaw(
+    repo,
+    join('epics', slug, 'index.md'),
+    `---\nid: ${id}\ntype: epic\ntitle: ${opts.title ?? id}\nstatus: ${opts.status ?? 'active'}\n---\n\nEpic ${id}.\n`,
+  )
+}
+
 function seedVision(repo: string, status: 'draft' | 'confirmed' = 'confirmed'): string {
   return seedRaw(repo, 'vision.md', `---\ntype: vision\nstatus: ${status}\n---\n\nProduct vision text.\n`)
 }
@@ -479,6 +488,7 @@ describe('wp approve-plan', () => {
       retired: [],
     })
     seedVision(repo, 'confirmed')
+    seedEpic(repo, 'E1')
     seedCr(repo, 'CR-001', 'confirmed')
     seedFr(repo, 'E1-FR1', 'E1', { status: 'batched', tracesTo: ['CR-001'] })
     seedWp(repo, 'WP-20260713-001', { status: 'ready', frIds: ['E1-FR1'], crIds: ['CR-001'] })
@@ -814,6 +824,7 @@ describe('validate', () => {
       retired: [],
     })
     seedVision(repo, 'confirmed')
+    seedEpic(repo, 'E1')
     seedFr(repo, 'E1-FR1', 'E1', { status: 'active', tracesTo: [], provenance: 'migrated' })
 
     const result = await runCli(['validate'], { repo })

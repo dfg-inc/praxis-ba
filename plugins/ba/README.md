@@ -19,12 +19,13 @@ derives its impact set through a slice-planning gate (`ba-plan-slice`), which sh
 human the plan — one story per `fr`, rules and NFRs separated, a source for every line
 — and hands back the very `--impacts-file` the confirm gate applies.
 
-**Checks that stopped at the canon border.** `validate` proves structure: schema, graph,
-ids, statuses. It says nothing about whether a requirement still carries a
-`[NEEDS CLARIFICATION]` marker into development, references an NFR id that does not
-exist in the project catalogue, or links to a file somebody has moved. `shape-requirement`
-now ends by running those checks (`ba-lint`) before a work package is prepared —
-`prepare-wp`'s own link-integrity gate fails on exactly the links they find.
+**Checks that stopped at the canon border.** `validate` proves structure **and**
+semantic body discipline: a `[NEEDS CLARIFICATION]` marker left in an active
+requirement, a reference to an NFR id absent from the project catalogue, a tag
+outside the vocabulary, a child ahead of its parent, and broken relative links.
+`shape-requirement` ends by running `ba-lint` (`praxis-ba validate`) before a
+work package is prepared — `prepare-wp`'s own link-integrity gate fails on
+exactly the links they find.
 
 Alongside that, five skills and ten templates for the layer itself: laying it out on a
 new project (`ba-scaffold`), and reversing it out of an existing codebase when the code
@@ -32,8 +33,8 @@ came first and the requirements never got written down (`ba-onboard`,
 `ba-code-surface-scan`).
 
 Everything new stays outside `canon/`: canon pages are still authored only by the canon
-skills, and the engine's write path is untouched. The only new dependency is `python3`,
-used by `tools/lint.py`.
+skills, and the engine's write path is untouched. The packaged plugin runtime is
+**Node.js only** (no system Python).
 
 ## Installing this plugin (consumers)
 
@@ -68,8 +69,7 @@ Verify with `/plugin marketplace list` (shows `praxis-ba` at `v1.0`) and `/plugi
 - **`skills/ba-*`** — 5 skills for the **project layer around the canon**, the part the engine neither writes nor sees: `ba-scaffold` (lays out `inputs/`, `shared/`, `diagrams/`, `meetings/`, `tasks/`, `archive/` from `templates/layer/`), `ba-onboard` + `ba-code-surface-scan` (reverse project context out of an existing codebase when there are no BA artefacts yet), `ba-plan-slice` (the slice-planning gate `grill-cr` calls before its confirmation gate — turns scope into one-story-per-`fr` slices and produces the `--impacts-file`), `ba-lint` (semantic body checks + the layer outside `canon/`). They never write inside `canon/` — canon pages are authored only by the skills above.
 - **`templates/`** — the 8 canon page skeletons (vision, fr, nfr, br, cr, wp, bug, epic-index).
 - **`templates/layer/`** — 10 skeletons for the project layer (project, glossary, stakeholders, rbac, data-model, integrations, nfr-catalog, as-is, taxonomy, inputs-readme). Filename = target filename, except `inputs-readme.md` → `inputs/README.md` and `nfr-catalog.md` → `shared/nfr.md`.
-- **`tools/lint.py`** — the 5 semantic body checks `validate` does not cover: a `[NEEDS CLARIFICATION]` marker left in an active requirement, a reference to an NFR id absent from the project catalogue, a tag outside the vocabulary, a child ahead of its parent, a broken relative link. **Requires `python3`** (the only non-bundled dependency in this plugin). Run with `--no-structural` whenever the CLI is present — without the flag it re-runs checks the engine already owns.
-- **`bin/praxis-ba.cjs`** — the **self-contained CLI** (`@praxis-ba/canon-graph` bundled into one file; no build, no `node_modules`, no `npm install`). Run: `node <plugin-dir>/bin/praxis-ba.cjs <verb> --repo <canon-dir>`.
+- **`bin/praxis-ba.cjs`** — the **self-contained CLI** (`@praxis-ba/canon-graph` bundled into one file; no build, no `node_modules`, no `npm install`, **no Python**). Run: `node <plugin-dir>/bin/praxis-ba.cjs <verb> --repo <canon-dir>`. `validate` includes structural graph checks **and** semantic body checks (formerly `lint.py`).
 
 ## The v3 model in brief
 
