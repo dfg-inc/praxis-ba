@@ -75,6 +75,7 @@ import { parseFile, parsePage, peekType, type ParsedPage } from './parse.js'
 import { crImpactsDelivered, requirementNodeIndex } from './reconcile.js'
 import { evaluateBaRules, loadBaRules } from './rules.js'
 import { fileURLToPath } from 'node:url'
+import { emitBaArchitectHandoff } from './handoff.js'
 import {
   baselineManifestSchema,
   crImpactSchema,
@@ -111,6 +112,8 @@ import {
 export type CliJson = {
   id?: string
   path?: string
+  /** Machine handoff path when a verb emits one (e.g. ba.architect.handoff). */
+  handoffPath?: string
   verdict: 'VERIFY-OK' | 'VERIFY-FAIL'
   checks: Check[]
 }
@@ -252,7 +255,10 @@ function gitHeadCommit(repo: string): string {
 
 type SeverityCheck = Check & { severity?: 'advisory' }
 
-function toResult(checks: readonly SeverityCheck[], extra: { id?: string; path?: string } = {}): CliResult {
+function toResult(
+  checks: readonly SeverityCheck[],
+  extra: { id?: string; path?: string; handoffPath?: string } = {},
+): CliResult {
   const hardFail = checks.some((c) => !c.ok && c.severity !== 'advisory')
   const advisoryFail = checks.some((c) => !c.ok && c.severity === 'advisory')
   const verdict: 'VERIFY-OK' | 'VERIFY-FAIL' = hardFail ? 'VERIFY-FAIL' : 'VERIFY-OK'
@@ -261,10 +267,15 @@ function toResult(checks: readonly SeverityCheck[], extra: { id?: string; path?:
   const json: CliJson = { verdict, checks: cleanChecks }
   if (extra.id) json.id = extra.id
   if (extra.path) json.path = extra.path
+  if (extra.handoffPath) json.handoffPath = extra.handoffPath
   return { code, json }
 }
 
-function ok(name: string, reason: string, extra: { id?: string; path?: string } = {}): CliResult {
+function ok(
+  name: string,
+  reason: string,
+  extra: { id?: string; path?: string; handoffPath?: string } = {},
+): CliResult {
   return toResult([{ name, ok: true, reason }], extra)
 }
 
@@ -454,7 +465,13 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
         }
       }
       setWpFrontmatter(repo, wpId, { status: 'plan-approved', plan })
-      return ok('wp-approve-plan', `${wpId} is plan-approved (plan: ${plan})`, { id: wpId, path })
+      // Machine BA → Architect handoff is part of plan-approval (not optional).
+      const { path: handoffPath } = emitBaArchitectHandoff(repo, wpId)
+      return ok(
+        'wp-approve-plan',
+        `${wpId} is plan-approved (plan: ${plan}); ba.architect.handoff emitted`,
+        { id: wpId, path, handoffPath },
+      )
     }
 
     case 'wp abandon':

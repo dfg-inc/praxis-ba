@@ -490,6 +490,12 @@ describe('wp approve-plan', () => {
     )
     expect(result.code).toBe(0)
     expect(readFm(repo, 'wp/WP-20260713-001/index.md', 'wp').status).toBe('plan-approved')
+    expect(result.json.handoffPath).toMatch(/ba-architect\.handoff\.json$/)
+    const handoff = JSON.parse(readFileSync(result.json.handoffPath!, 'utf8'))
+    expect(handoff.contract).toBe('ba.architect.handoff')
+    expect(handoff.workPackageId).toBe('WP-20260713-001')
+    expect(handoff.requirementIds).toContain('E1-FR1')
+    expect(existsSync(join(repo, 'wp/WP-20260713-001/handoffs/ba-architect.handoff.json'))).toBe(true)
   })
 
   it('refuses approval when validate fails (hard gate)', async () => {

@@ -36,6 +36,7 @@ if (wantsJson) {
   }
   if (json.id) console.log(`id: ${json.id}`)
   if (json.path) console.log(`path: ${json.path}`)
+  if (json.handoffPath) console.log(`handoffPath: ${json.handoffPath}`)
 }
 
 process.exitCode = code

@@ -27,8 +27,13 @@ This is the canonical form of the "approve WP → plan" human gate (CLAUDE.md: "
    ```
    This is the ONLY writer of `status: plan-approved` and the `plan:` frontmatter field.
    The CLI re-validates structurally and refuses approval if validation fails.
+   **On success it also emits the machine BA → Architect handoff** at:
+
+   `wp/<id>/handoffs/ba-architect.handoff.json`
+
+   (`contract: "ba.architect.handoff"`). Do not hand-author this JSON — the CLI is the writer. JSON output includes `handoffPath`.
 5. On "needs changes", loop back to a plan revision — do not call `wp approve-plan` until a subsequent AskUserQuestion actually confirms approval.
 
 ## Done when
 
-The WP's frontmatter (`wp/<id>/index.md`) shows `status: plan-approved` and `plan: wp/<id>/plan.md`, and a human explicitly said so. The WP folder is now the complete input for whatever development harness the repo uses.
+The WP's frontmatter (`wp/<id>/index.md`) shows `status: plan-approved` and `plan: wp/<id>/plan.md`, a human explicitly said so, **and** `wp/<id>/handoffs/ba-architect.handoff.json` exists for Architect intake.
