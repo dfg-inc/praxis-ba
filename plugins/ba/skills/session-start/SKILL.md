@@ -13,10 +13,13 @@ WBS 1.4 / 1.5 precursor: load `.project` defaults and the applicable knowledge s
    ```
    node <plugin-dir>/tools/session-bootstrap.mjs [repo-root]
    ```
-   Omit the argument to use the current working directory. Requires workspace packages built (`@praxis/plugin-sdk` and deps).
-2. Read the printed lines: plugin version, `.project` status (missing / loaded / invalid), knowledge rules loaded or why skipped.
+   Omit the argument to use the current working directory. Packaged plugins ship
+   `tools/session-bootstrap.cjs` (same entry). Workspace source needs
+   `@praxis/plugin-sdk` built.
+2. Read the printed lines: plugin version, `.project` status (missing / loaded / invalid), knowledge rules loaded or why skipped/unavailable.
 3. If `.project` is missing, surface the suggested path and continue with defaults only after the human acknowledges.
-4. Proceed to `status` or the skill the human asked for.
+4. If `knowledge.path` is unset, treat rules as **not applied** (explicit skipped) — do not invent a dataset path.
+5. Proceed to `status` or the skill the human asked for.
 
 ## Done when
 
