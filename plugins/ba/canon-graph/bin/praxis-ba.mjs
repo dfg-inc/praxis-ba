@@ -26,7 +26,7 @@ const { code, json } = await runCli(argv)
 
 if (wantsJson) {
   console.log(JSON.stringify(json))
-} else if (json.checks.length === 1 && ['prd', 'rtm', 'backlog'].includes(json.checks[0].name)) {
+} else if (json.checks.length === 1 && ['prd', 'rtm', 'backlog', 'code-surface-scan'].includes(json.checks[0].name)) {
   // render/export: print the raw derived view, not the {verdict,checks} envelope.
   console.log(json.checks[0].reason)
 } else {

@@ -10,10 +10,12 @@ This canon is for CLIENT-REPORTED bugs only — a bug a developer finds mid-WP l
 ## What happens — authoring (HYBRID: direct Write, not `bug capture`)
 
 1. `praxis-ba id next --scope bug --repo <canon-dir>` → mints and persists the next id (e.g. `BUG-004`); `counters.product.bug` advances immediately.
-2. **Write** `<repo>/bugs/<id>.md` directly from `.claude/plugins/praxis-ba/templates/bug.md`: replace the sentinel `id`; set `affects: [<FR/NFR/BR id(s) this bug violates>]` (the typed ref this bug is against); `severity` (free text, no fixed enum — e.g. `low`/`medium`/`high`/`critical`); `reported` (the report date); `reporter` (who reported it); `status: open`. Body: **Repro** (exact steps from a known starting state), **Expected**, **Actual**.
-3. `praxis-ba fmt <path> --repo <canon-dir>` then `praxis-ba validate --check --repo <canon-dir>`.
+2. **Write** `<repo>/bugs/<id>.md` directly from `.claude/plugins/praxis-ba/templates/bug.md`: replace the sentinel `id`; set `affects: [<existing FR/NFR/BR id(s) this bug violates>]` (must already exist in the canon — unknown ids fail `validate` / `bug capture`); `severity` (free text, no fixed enum — e.g. `low`/`medium`/`high`/`critical`); `reported` (the report date); `reporter` (who reported it); `status: open`. Body must keep three **separate** sections: **Repro** (exact steps from a known starting state, not collapsed into prose), **Expected**, **Actual**.
+3. `praxis-ba fmt <path> --repo <canon-dir>` then `praxis-ba validate --check --repo <canon-dir>` (`bug-affects-resolves` must pass).
 
-The retired `bug capture` verb MUST NOT be run — replaced by the `id next` + `Write` sequence above.
+Do **not** mint a CR because a bug was captured. CR only later via `bug resolve --spawn-cr` if triage says so.
+
+The retired `bug capture` verb is not the skill path — prefer `id next` + `Write`. The CLI still enforces the same contract when used in tests/acceptance.
 
 ## Resolution (later, not this skill's job)
 

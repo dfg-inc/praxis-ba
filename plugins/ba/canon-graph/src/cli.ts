@@ -90,6 +90,16 @@ import {
 import { slugifyHeading } from './scopelinks.js'
 import { emitPage, exportBacklog, exportPrd, exportRtm } from './serialize.js'
 import { findMissingItems } from './status.js'
+import { assertBugCapture, unresolvedAffects } from './bug-contract.js'
+import {
+  formatSurfaceReport,
+  scanCodeSurface,
+} from './code-surface-scan.js'
+import {
+  checkOnboardContext,
+  initOnboardContext,
+  knownCanonMeanings,
+} from './onboard-context.js'
 import type { NodeType, Status, Check } from './types.js'
 import {
   accept,
@@ -117,6 +127,8 @@ export type CliJson = {
   handoffPath?: string
   verdict: 'VERIFY-OK' | 'VERIFY-FAIL'
   checks: Check[]
+  surface?: unknown
+  warnings?: unknown
 }
 
 export type CliResult = { code: number; json: CliJson }
@@ -192,6 +204,15 @@ const OPTIONS: Record<string, OptionSpec> = {
   verify: { type: 'boolean', default: false },
   backfill: { type: 'string' },
   'repo-root': { type: 'string' },
+  root: { type: 'string' },
+  anchors: { type: 'string' },
+  state: { type: 'string' },
+  incremental: { type: 'boolean', default: false },
+  'accept-scan': { type: 'boolean', default: false },
+  templates: { type: 'string' },
+  init: { type: 'boolean', default: false },
+  project: { type: 'string' },
+  canon: { type: 'string' },
 }
 
 type FlagValues = Record<string, string | boolean | undefined>
@@ -496,6 +517,8 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
       const severity = requireFlag(values.severity, 'bug capture: --severity <s> is required')
       const bodyFile = requireFlag(values['body-file'], 'bug capture: --body-file <path> is required')
       const body = readFileSync(bodyFile, 'utf8')
+      const graph = loadGraph(repo)
+      assertBugCapture({ body, affects, graph })
       const date = asString(values.date) ?? todayDate()
       const reporter = asString(values.reporter) ?? currentUser()
       const id = await allocateId(repo, { kind: 'bug' })
@@ -503,6 +526,59 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
       const frontmatter = { id, type: 'bug' as const, status: 'open' as const, severity, affects, reported: date, reporter }
       atomicWrite(path, emitPage('bug', frontmatter as unknown as FrontmatterFor<'bug'>, body))
       return ok('bug-capture', `minted ${id} (status: open)`, { id, path })
+    }
+
+    case 'code-surface-scan': {
+      const root = asString(values.root) ?? asString(values['repo-root']) ?? repo
+      const anchors = splitCsv(values.anchors)
+      const statePath = asString(values.state) ?? join(root, '.ba', 'code-surface-state.json')
+      const incremental = values.incremental === true
+      const acceptScan = values['accept-scan'] === true
+      const canon = asString(values.canon)
+      const report = scanCodeSurface({
+        root,
+        anchors: anchors.length ? anchors : undefined,
+        statePath,
+        incremental,
+        accept: acceptScan,
+        knownMeanings: canon ? knownCanonMeanings(canon) : undefined,
+      })
+      const md = formatSurfaceReport(report, incremental)
+      const result = ok('code-surface-scan', md, { path: statePath })
+      result.json.surface = incremental ? report.newOrChanged : report.operations
+      result.json.warnings = report.warnings
+      return result
+    }
+
+    case 'onboard-context': {
+      const projectRoot = asString(values.project) ?? asString(values.root) ?? repo
+      if (values.init === true) {
+        const templatesDir = requireFlag(
+          values.templates,
+          'onboard-context --init: --templates <dir> is required',
+        )
+        const result = initOnboardContext({
+          projectRoot,
+          templatesDir,
+          canonDir: asString(values.canon),
+        })
+        return ok(
+          'onboard-context',
+          `created ${result.created.length}; skipped existing ${result.skipped.length}; protected ${result.protected.join(', ') || 'none'}`,
+          { path: projectRoot },
+        )
+      }
+      const check = checkOnboardContext(projectRoot)
+      const okAll = check.missing.length === 0 && check.headingGaps.length === 0
+      return toResult([
+        {
+          name: 'onboard-context',
+          ok: okAll,
+          reason: okAll
+            ? `context layer present: ${check.present.join(', ')}`
+            : `missing: ${check.missing.join(', ') || 'none'}; heading gaps: ${check.headingGaps.join(', ') || 'none'}`,
+        },
+      ], { path: projectRoot })
     }
 
     case 'bug resolve':
@@ -1482,6 +1558,19 @@ async function validate(repo: string, check: boolean): Promise<CliResult> {
     },
     // Semantic body checks (formerly tools/lint.py 1–5) — Node-only, no Python.
     ...semanticChecks,
+    (() => {
+      const unknown = graph.bugs.flatMap((b) =>
+        unresolvedAffects(b.frontmatter.affects, graph).map((id) => `${b.frontmatter.id} -> ${id}`),
+      )
+      return {
+        name: 'bug-affects-resolves',
+        ok: unknown.length === 0,
+        reason:
+          unknown.length === 0
+            ? 'every bug affects[] id is an existing FR/NFR/BR'
+            : unknown.join('; '),
+      }
+    })(),
   ]
 
   if (check) {

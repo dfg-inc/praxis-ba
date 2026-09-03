@@ -612,20 +612,56 @@ describe('accept', () => {
 // bug capture / resolve
 // ==========================================================================
 
+const VALID_BUG_BODY = [
+  '**Repro:**',
+  '1. Open the released page',
+  '2. Click Save',
+  '',
+  '**Expected:** The record persists.',
+  '',
+  '**Actual:** The API returns 500.',
+  '',
+].join('\n')
+
 describe('bug capture / resolve', () => {
   it('captures an open bug', async () => {
     const repo = makeRepo()
-    const body = scratchFile('It crashes.\n')
+    seedFr(repo, 'E1-FR1', 'E1')
+    const body = scratchFile(VALID_BUG_BODY)
     const result = await runCli(['bug', 'capture', '--affects', 'E1-FR1', '--severity', 'high', '--body-file', body], { repo })
     expect(result.code).toBe(0)
     const fm = readFm(repo, `bugs/${result.json.id}.md`, 'bug')
     expect(fm.status).toBe('open')
     expect(fm.affects).toEqual(['E1-FR1'])
+    const raw = readFileSync(join(repo, `bugs/${result.json.id}.md`), 'utf8')
+    expect(raw).toMatch(/\*\*Repro:\*\*/)
+    expect(raw).toMatch(/\*\*Expected:\*\*/)
+    expect(raw).toMatch(/\*\*Actual:\*\*/)
+    expect(existsSync(join(repo, 'cr'))).toBe(false)
+  })
+
+  it('rejects an unknown requirement id', async () => {
+    const repo = makeRepo()
+    seedFr(repo, 'E1-FR1', 'E1')
+    const body = scratchFile(VALID_BUG_BODY)
+    const result = await runCli(['bug', 'capture', '--affects', 'E9-FR9', '--severity', 'high', '--body-file', body], { repo })
+    expect(result.code).toBe(1)
+    expect(result.json.checks[0]?.reason).toMatch(/unknown requirement/)
+  })
+
+  it('rejects a body missing Repro/Expected/Actual', async () => {
+    const repo = makeRepo()
+    seedFr(repo, 'E1-FR1', 'E1')
+    const body = scratchFile('It crashes.\n')
+    const result = await runCli(['bug', 'capture', '--affects', 'E1-FR1', '--severity', 'high', '--body-file', body], { repo })
+    expect(result.code).toBe(1)
+    expect(result.json.checks[0]?.reason).toMatch(/Repro|Expected|Actual/)
   })
 
   it('resolves a bug and can spawn a CR', async () => {
     const repo = makeRepo()
-    const body = scratchFile('It crashes.\n')
+    seedFr(repo, 'E1-FR1', 'E1')
+    const body = scratchFile(VALID_BUG_BODY)
     const captured = await runCli(['bug', 'capture', '--affects', 'E1-FR1', '--severity', 'high', '--body-file', body], { repo })
     const bugId = captured.json.id as string
 
@@ -638,7 +674,8 @@ describe('bug capture / resolve', () => {
 
   it('rejects an unrecognized --status', async () => {
     const repo = makeRepo()
-    const body = scratchFile('It crashes.\n')
+    seedFr(repo, 'E1-FR1', 'E1')
+    const body = scratchFile(VALID_BUG_BODY)
     const captured = await runCli(['bug', 'capture', '--affects', 'E1-FR1', '--severity', 'high', '--body-file', body], { repo })
     const result = await runCli(['bug', 'resolve', '--bug', captured.json.id as string, '--status', 'bogus'], { repo })
     expect(result.code).toBe(1)

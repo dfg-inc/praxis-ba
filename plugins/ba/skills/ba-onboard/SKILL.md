@@ -26,7 +26,7 @@ description: Use when bringing an EXISTING / legacy codebase onto the ADLC BA ca
 4. **glossary + project.md** — термины и суть продукта
 5. **AS-IS карта** — что есть и что делает, по факту (грубо, 1–2 строки на область)
 6. **Выбери первый срез** — одну область, не всё сразу
-7. **Перечисли поверхность среза** — ВСЕ эндпоинты и UI-действия области, детерминированно (не на память)
+7. **Перечисли поверхность среза** — `praxis-ba code-surface-scan --root <code> --anchors …` (не на память; Explore только как запасной оркестратор)
 8. **Валидируй с человеком** — построчно по выводам, не штампом
 9. **Запиши артефакты** контекста
 10. **Передай срез в канон** — `praxis-ba:capture-cr`
@@ -185,6 +185,7 @@ description: Use when bringing an EXISTING / legacy codebase onto the ADLC BA ca
 Когда канон **уже частично** заполнен (повторный заход, второй срез):
 
 1. **Инвентаризация существующих id** — `praxis-ba status --repo <canon>` и список `cr/`, `epics/*/E*-FR*.md`; не создавай CR/FR с тем же смыслом под новым id.
-2. **Dedupe перед capture-cr** — сравни новый срез с `### Delivers` / `traces_to` существующих страниц; при совпадении поверхности — amend через существующий CR (`impacts.amends`), не spawn дубликата.
-3. **Инкремент среза** — новый эпик только если область новая; иначе расширяй текущий epic новыми FR после подтверждённого CR.
-4. **Не перезаписывай** confirmed vision / baselined requirements без явного CR amend.
+2. **Поверхность** — `praxis-ba code-surface-scan --root <code> --accept-scan` при первом заходе; повторно `--incremental` (новые/изменённые fingerprints). `--canon <canon>` скрывает операции, уже упомянутые в существующих CR/FR.
+3. **Dedupe перед capture-cr** — сравни новый срез с `### Delivers` / `traces_to` существующих страниц; при совпадении поверхности — amend через существующий CR (`impacts.amends`), не spawn дубликата.
+4. **Инкремент среза** — новый эпик только если область новая; иначе расширяй текущий epic новыми FR после подтверждённого CR.
+5. **Не перезаписывай** confirmed vision / baselined requirements. `praxis-ba onboard-context --init` пропускает существующие файлы слоя; канон не трогает.
