@@ -1,6 +1,6 @@
 {
   "name": "@praxis/ba",
-  "version": "0.1.0-alpha.16",
+  "version": "0.1.0-alpha.17",
   "private": true,
   "description": "praxis-ba Claude Code plugin (migrated from adlc-ba)",
   "scripts": {
