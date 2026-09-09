@@ -5,15 +5,19 @@
  * Requires @praxis/plugin-sdk (and deps) built in the workspace.
  */
 import { readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bootstrapSession, formatSessionBootstrap } from '@praxis/plugin-sdk'
+import {
+  bootstrapSession,
+  formatSessionBootstrap,
+  parseSessionBootstrapArgs,
+} from '@praxis/plugin-sdk'
 
 const pluginRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pluginJson = JSON.parse(
   readFileSync(join(pluginRoot, '.claude-plugin/plugin.json'), 'utf8')
 )
-const repoRoot = process.argv[2] ? resolve(process.cwd(), process.argv[2]) : process.cwd()
+const { repoRoot } = parseSessionBootstrapArgs(process.argv.slice(2))
 
 const boot = bootstrapSession({
   repoRoot,
