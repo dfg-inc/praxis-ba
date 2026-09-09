@@ -24,8 +24,9 @@ const PACKAGE_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const BIN_PATH = join(PACKAGE_ROOT, 'bin', 'praxis-ba.mjs')
 const WORKSPACE_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 const TSC_CANDIDATES = [
-  join(PACKAGE_ROOT, 'node_modules', '.bin', 'tsc'),
-  join(WORKSPACE_ROOT, 'node_modules', '.bin', 'tsc'),
+  join(PACKAGE_ROOT, "node_modules", ".bin", "tsc"),
+  join(PACKAGE_ROOT, "..", "node_modules", ".bin", "tsc"),
+  join(WORKSPACE_ROOT, "node_modules", ".bin", "tsc"),
 ]
 const TSC_PATH = TSC_CANDIDATES.find((p) => existsSync(p))
 
