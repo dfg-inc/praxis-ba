@@ -3,6 +3,7 @@ node_modules/
 
 # Build / generate outputs
 dist/
+artifacts/
 build/
 coverage/
 .cache/
