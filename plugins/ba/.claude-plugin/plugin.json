@@ -1,6 +1,6 @@
 {
   "name": "praxis-ba",
-  "version": "0.1.0-alpha.14",
+  "version": "0.1.0-alpha.15",
   "description": "Praxis BA plugin (v3, canon-graph): business analyst role over a md-first, git-native requirements canon. Migrated from adlc-ba for Phase 1 monorepo.",
   "author": {
     "name": "dfuture-co",
