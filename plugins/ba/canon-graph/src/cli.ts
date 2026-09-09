@@ -67,6 +67,7 @@ import { buildGraph, type Graph } from './graph.js'
 import type { FrontmatterFor } from './graph.js'
 import { definitionOfReady, scopeLinkIssues, scopeVersionIssues, type VerifyEvidence } from './gates.js'
 import { checkGoals } from './goals.js'
+import { writeOnePager } from './one-pager.js'
 import { allocateId, maxGuard } from './ids.js'
 import { migrate, verifyParity } from './migrate.js'
 import { backfillMapSchema, migrateV3, paritySnapshotSchema, verifyParityV3 } from './migrate-v3.js'
@@ -593,6 +594,14 @@ async function dispatch(verb: string, repo: string, values: FlagValues, position
     case 'goals status':
     case 'check-goals':
       return goalsStatus(repo)
+
+    case 'one-pager': {
+      const id = requireFlag(values.id, 'one-pager: --id <FR-id> is required')
+      const outPath = asString(values.out)
+      const result = writeOnePager(repo, id, outPath)
+      if (!result.ok) throw new Error(result.error)
+      return ok('one-pager', `OK wrote ${result.outPath}`, { id, path: result.outPath })
+    }
 
     case 'rules-lint':
       return rulesLint(repo, asString(values.rules))

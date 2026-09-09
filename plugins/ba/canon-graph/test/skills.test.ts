@@ -216,6 +216,7 @@ describe('cli.ts verb extraction — sanity (the extraction itself must be sound
       'status',
       'goals status',
       'check-goals',
+      'one-pager',
       'render',
       'export',
       'validate',
