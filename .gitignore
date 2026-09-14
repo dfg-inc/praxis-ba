@@ -35,6 +35,10 @@ logs/
 .env.*
 !.env.example
 !.env.*.example
+!.env.praxis.example
+
+# Praxis local Jira/QA working state
+.praxis-jira/
 
 # OS
 .DS_Store
