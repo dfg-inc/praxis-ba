@@ -5,16 +5,12 @@ description: Analyze a Jira Epic key, create/update Stories with AC, write Archi
 
 # Jira analyze epic
 
-Use the public Praxis CLI. If unsure, `praxis ba --help`.
+Use MCP tools, not a shell CLI.
 
-```
-praxis ba preview --epic PRX-1 --repo . --json
-```
+Call `praxis_ba_preview`. Print the BA Jira write plan. STOP and wait for human approval.
 
-Print the BA Jira write plan before any apply. Live writes only after human confirmation:
+Live writes only after confirmation:
 
-```
-praxis ba apply --epic PRX-1 --repo . --confirm YES --json
-```
+`praxis_ba_apply` with `confirmation=YES` and matching `previewFingerprint`.
 
-Identity: `ba:{epicKey}:{logicalId}`. Never invent a second write path.
+Identity: `ba:{epicKey}:{logicalId}`. Never invent a second write path. Do not immediately apply after preview.

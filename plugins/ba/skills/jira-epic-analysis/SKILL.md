@@ -5,33 +5,33 @@ description: Analyze a Jira Epic, prepare BA stories and Architect handoff. Invo
 
 # Jira Epic Analysis
 
-Primary human UX is Claude UI. The user should not need Make, Node scripts, or internal paths.
+Primary human UX is Claude UI / Cowork with project access. Do not tell the user to run CLI, Make, or Node.
 
 ## Capability detection
 
-1. Detect the workspace repository (`git rev-parse --show-toplevel`). If several repos exist, ask which one. If none, stop.
-2. Run `${CLAUDE_PLUGIN_ROOT}/bin/praxis doctor --json` (or `praxis doctor --json` if on PATH).
-3. If the command cannot execute: stop with `LOCAL_RUNTIME_UNAVAILABLE`. Do not pretend Jira was read or files changed.
-4. If `.project` is missing: `praxis project init --infer --json`, show the preview, ask the human once, then `praxis project init --infer --confirm YES --json`.
+1. Resolve the workspace repository. If none, stop with `REPOSITORY_UNAVAILABLE`.
+2. Call MCP `praxis_doctor` (read-only).
+3. If local execution is not available: `LOCAL_RUNTIME_UNAVAILABLE`. Do not pretend Jira was read.
+4. If Jira config is missing: `JIRA_CONFIG_UNAVAILABLE`. Never ask the user to paste a token into chat.
+5. If `.project` is missing: call `praxis_project_init_preview`, show it, STOP, and only after approval call `praxis_project_init_apply` with `confirmation=YES`.
 
-If you are unsure which command exists, run `praxis ba --help` or `praxis ba preview --help` first. Never guess command names. Never inspect Praxis `.mjs` internals to discover the API.
+Claude Chat may show this Skill, but local development workflow depends on workspace/runtime capabilities.
 
 ## Flow
 
-```
-praxis doctor --json
-praxis jira status --epic <EPIC> --json
-praxis ba preview --epic <EPIC> --repo . --json
-```
+Call, in order:
 
-Show the BA write plan (UNCHANGED / UPDATE / CREATE / SUPERSEDED). Wait for human confirmation.
+- `praxis_doctor`
+- `praxis_jira_status` / `praxis_ba_status` with `epic`
+- `praxis_ba_preview` with `epic`
 
-Then:
+Show the BA write plan (CREATE / UPDATE / UNCHANGED / SUPERSEDED). Wait for explicit human approval. Do not call apply in the same autonomous sequence as preview.
 
-```
-praxis ba apply --epic <EPIC> --repo . --confirm YES --json
-```
+Only after the human approves, call `praxis_ba_apply` with:
 
-Do not write without `--confirm YES`. Do not invent a second Story write path. Ignore superseded duplicates except as audit. Do not start Architect.
+- `confirmation`: `YES`
+- `previewFingerprint`: the exact value returned by preview
+
+Do not write without confirmation and matching fingerprint. Ignore superseded duplicates except as audit (e.g. PRX-2). Do not start Architect.
 
 User prompts (examples): «Возьми PRX-123 и подготовь требования для архитектора.» / “Take PRX-123 and prepare requirements for the architect.”

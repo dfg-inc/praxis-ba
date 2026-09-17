@@ -1,6 +1,10 @@
 # praxis-ba (v3 — canon-graph)
 
-The ADLC **Business Analyst** plugin: author and govern a **md-first, git-native requirements canon** with skills + a self-contained validator/CLI. v3 adds impact-traced CRs (a single confirm gate after a relentless `grill-cr` interview), folder-shaped WPs, and a **dev-harness-agnostic** posture — this plugin prepares INPUT for development only; it names no specific downstream dev workflow, tool, or vendor.
+The ADLC **Business Analyst** plugin: author and govern a **md-first, git-native requirements canon** with skills + a self-contained validator/CLI.
+
+**Claude UI / Cowork:** import `claude-plugins/praxis-ba.zip` and invoke Jira Epic Analysis. Jira operations use MCP tools (`praxis_ba_preview` / `praxis_ba_apply`), not the Praxis CLI.
+
+v3 adds impact-traced CRs (a single confirm gate after a relentless `grill-cr` interview), folder-shaped WPs, and a **dev-harness-agnostic** posture — this plugin prepares INPUT for development only; it names no specific downstream dev workflow, tool, or vendor.
 
 ## What's new in 0.4.0 — the layer around the canon
 

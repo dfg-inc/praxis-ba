@@ -5,11 +5,9 @@ description: Read-only BA/Jira status for an Epic (canonical stories, superseded
 
 # BA Status
 
-Detect the workspace repo. Run:
+Detect the workspace repo. Call MCP:
 
-```
-praxis doctor --json
-praxis ba status --epic <EPIC> --json
-```
+- `praxis_doctor`
+- `praxis_ba_status` with `epic`
 
-If the CLI cannot run: `LOCAL_RUNTIME_UNAVAILABLE`. Read-only. Do not apply. Do not start Architect.
+Read-only. No confirmation. Do not apply. Do not start Architect. If runtime/repo/Jira is missing, return the matching capability code.

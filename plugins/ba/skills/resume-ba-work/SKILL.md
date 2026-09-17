@@ -5,15 +5,10 @@ description: Resume BA work on an Epic from remote Jira + local proposal. No dup
 
 # Resume BA Work
 
-Same runtime rules as Jira Epic Analysis: detect repo, `praxis doctor --json`, stop with `LOCAL_RUNTIME_UNAVAILABLE` if the CLI cannot run. Use `praxis ba --help` if unsure.
+Same capability rules as Jira Epic Analysis: `praxis_doctor`, then stop with `LOCAL_RUNTIME_UNAVAILABLE` / `REPOSITORY_UNAVAILABLE` / `JIRA_CONFIG_UNAVAILABLE` when those apply. Never paste tokens into chat.
 
-```
-praxis jira status --epic <EPIC> --json
-praxis ba preview --epic <EPIC> --repo . --json
-```
+Call `praxis_jira_status` and `praxis_ba_preview`. If the plan is empty/UNCHANGED, report status and stop.
 
-If the plan is empty/UNCHANGED, report status and stop. Apply only after human confirmation:
+Apply only after human approval. Do not immediately apply after preview.
 
-```
-praxis ba apply --epic <EPIC> --repo . --confirm YES --json
-```
+Then `praxis_ba_apply` with `confirmation=YES` and the matching `previewFingerprint`.
