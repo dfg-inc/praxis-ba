@@ -6,19 +6,9 @@ Epic:
 Repository:
 {{REPO}}
 
-Run:
-- session-start;
-- Jira Epic analysis;
-- repository analysis;
-- semantic requirements;
-- User Stories;
-- Acceptance Criteria;
-- write `.praxis-jira/proposals/{{EPIC}}.json` (`contract: jira.ba.proposal`);
-- machine preview (`make ba-preview`);
-- human confirmation before writes;
-- apply only with `--confirm YES`;
-- BA → Architect handoff.
-
+Use public CLI only (`praxis … --json`). If unsure: `praxis ba --help`.
+Doctor, Jira status, BA preview, human confirmation, then `praxis ba apply --confirm YES --json`.
+Do not use Makefile or `jira-workflow.mjs` for normal workflow.
 Do not invent Jira writes without approval.
-Do not accept human product decisions yourself.
 Ignore superseded duplicates except as audit.
+Do not start Architect.
