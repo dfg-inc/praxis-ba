@@ -5,7 +5,16 @@ description: Resume BA work on an Epic from remote Jira + local proposal. No dup
 
 # Resume BA Work
 
-Same capability rules as Jira Epic Analysis: `praxis_doctor`, then stop with `LOCAL_RUNTIME_UNAVAILABLE` / `REPOSITORY_UNAVAILABLE` / `JIRA_CONFIG_UNAVAILABLE` when those apply. Never paste tokens into chat.
+## Shared Praxis Runtime
+
+This Skill uses tools from the **Praxis Runtime** Desktop Extension.
+
+1. If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`. Tell the user to install or enable the Praxis Runtime Desktop Extension. Do not instruct them to run CLI or edit config files.
+2. Call `praxis_doctor`.
+3. If Jira is not configured: stop with `JIRA_CONFIG_UNAVAILABLE`. Open Claude Desktop → Settings → Extensions → Praxis Runtime → Settings. Never request the token in chat.
+4. If `.project` is missing: `praxis_project_init_preview`, wait for approval, then `praxis_project_init_apply` with `confirmation=YES`.
+
+Allowed tools: common/Jira/project + BA. Do not start Architect.
 
 Call `praxis_jira_status` and `praxis_ba_preview`. If the plan is empty/UNCHANGED, report status and stop.
 
