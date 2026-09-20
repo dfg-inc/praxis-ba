@@ -18,6 +18,7 @@ tmp/
 **/.vitepress/cache/
 **/.vitepress/dist/
 apps/marketplace-site/docs/.vitepress/dist/
+apps/marketplace-site/docs/user-guide/
 
 # Runtime / local DBs
 *.sqlite
