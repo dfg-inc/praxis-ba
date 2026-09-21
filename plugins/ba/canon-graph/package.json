@@ -1,6 +1,6 @@
 {
   "name": "@praxis/ba-canon-graph",
-  "version": "0.1.0-alpha.42",
+  "version": "0.1.0-alpha.43",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
