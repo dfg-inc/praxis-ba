@@ -9,7 +9,7 @@
       "name": "praxis-ba",
       "source": "./",
       "description": "Praxis BA plugin — md-first requirements canon with canon-graph CLI.",
-      "version": "0.1.0-alpha.41"
+      "version": "0.1.0-alpha.42"
     }
   ]
 }
