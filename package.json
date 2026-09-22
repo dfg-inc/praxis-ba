@@ -24,5 +24,10 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@praxis/plugin-sdk": "file:vendor/praxis-plugin-sdk-0.1.0-alpha.44.tgz",
+    "@praxis/knowledge": "file:vendor/praxis-knowledge-0.1.0-alpha.44.tgz",
+    "@praxis/project-config": "file:vendor/praxis-project-config-0.1.0-alpha.44.tgz"
+  }
 }
