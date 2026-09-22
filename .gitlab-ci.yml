@@ -1,7 +1,9 @@
 # praxis-ba — GitLab CI
+# Tag pipeline (v$package.json.version): pack ZIP → Generic Package Registry → GitLab Release.
 stages:
   - verify
   - package
+  - release
 
 default:
   image: node:22-bookworm
@@ -55,3 +57,18 @@ pack_zip:
       - dist/zip-checksums.json
     expire_in: 30 days
     name: "praxis-ba-zip-$CI_COMMIT_SHORT_SHA"
+
+publish_release:
+  stage: release
+  needs:
+    - job: pack_zip
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    PRAXIS_RELEASE_ARTIFACT_NAME: praxis-ba.zip
+    PRAXIS_RELEASE_SEARCH_ROOT: dist/claude-plugins
+    PRAXIS_RELEASE_PACKAGE_NAME: praxis-ba
+    PRAXIS_RELEASE_KIND: zip
+  script:
+    - node tools/scripts/publish-gitlab-release.mjs

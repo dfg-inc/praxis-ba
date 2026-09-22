@@ -14,4 +14,6 @@ npm run verify   # validate + BA acceptance + ZIP
 - Artifact: `dist/claude-plugins/<version>/praxis-ba.zip`
 - Core pins: tracked `vendor/*.tgz` (plugin-sdk, knowledge, project-config)
 - Docs: `praxis-docs` → `docs/user/plugins/ba.md`
-- CI: `validate`, `acceptance`, `pack_zip` on `node:22-bookworm`
+- Install: [GitLab Releases](https://gl.jetru.by/engineering/ai-tooling/praxis-ba/-/releases) (`praxis-ba.zip` + `release-meta.json`)
+- CI: `validate`, `acceptance`, `pack_zip`; on tag `v$version` → `publish_release` (Generic Package Registry + Release)
+
