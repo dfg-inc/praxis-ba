@@ -1,0 +1,28 @@
+{
+  "name": "praxis-ba",
+  "private": true,
+  "version": "0.1.0-alpha.44",
+  "description": "Praxis BA Skills plugin and praxis-ba.zip",
+  "workspaces": [
+    "plugins/*",
+    "plugins/ba/canon-graph",
+    "tools/scripts"
+  ],
+  "scripts": {
+    "build": "npm run build -w @praxis/ba --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "plugins:validate": "node tools/scripts/validate-plugins.mjs",
+    "pack:zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.44",
+    "check:skill-cli": "node tools/scripts/check-skill-cli.mjs",
+    "check:boundaries": "node tools/scripts/check-boundaries.mjs",
+    "accept:claude-plugins": "node tools/scripts/claude-plugins-acceptance.mjs",
+    "accept:claude-hosted-plugins": "node tools/scripts/claude-hosted-plugins-acceptance.mjs",
+    "accept:ba-diagnostics": "node tools/scripts/ba-diagnostics-acceptance.mjs --rebuild",
+    "accept:ba-outcomes": "node tools/scripts/ba-outcomes-acceptance.mjs --rebuild",
+    "verify": "npm run build && npm run test && npm run plugins:validate && npm run check:skill-cli && npm run check:boundaries && npm run pack:zip && npm run accept:claude-plugins && npm run accept:ba-diagnostics && npm run accept:ba-outcomes"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0"
+}

@@ -52,8 +52,6 @@ Desktop.ini
 *.swp
 *.swo
 *~
-
-# Optional local project overrides (template is .project.example)
 .project
 .project.yaml
 .project.yml
