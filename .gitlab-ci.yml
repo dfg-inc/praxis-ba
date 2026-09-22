@@ -1,0 +1,57 @@
+# praxis-ba — GitLab CI
+stages:
+  - verify
+  - package
+
+default:
+  image: node:22-bookworm
+  interruptible: true
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+  before_script:
+    - node -v && npm -v
+    - npm ci --cache .npm --prefer-offline
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+validate:
+  stage: verify
+  script:
+    - npm run build
+    - npm run test
+    - npm run plugins:validate
+    - npm run check:skill-cli
+    - npm run check:boundaries
+
+acceptance:
+  stage: verify
+  script:
+    - npm run build
+    - npm run accept:ba-diagnostics
+    - npm run accept:ba-outcomes
+
+pack_zip:
+  stage: package
+  needs: [validate, acceptance]
+  script:
+    - npm run build
+    - npm run pack:zip
+    - npm run accept:claude-plugins
+    - |
+      python3 - <<'PY'
+      import hashlib, json, pathlib
+      paths = list(pathlib.Path("dist/claude-plugins").rglob("praxis-ba.zip"))
+      assert paths, "praxis-ba.zip missing"
+      rows = [{"file": str(p), "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "bytes": p.stat().st_size} for p in paths]
+      pathlib.Path("dist/zip-checksums.json").write_text(json.dumps(rows, indent=2) + "\n")
+      print(rows)
+      PY
+  artifacts:
+    paths:
+      - dist/claude-plugins/
+      - dist/zip-checksums.json
+    expire_in: 30 days
+    name: "praxis-ba-zip-$CI_COMMIT_SHORT_SHA"
