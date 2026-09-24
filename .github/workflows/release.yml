@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Assert tag matches package.json version
+        run: |
+          VER=$(node -p 'require("./package.json").version')
+          echo "tag=${GITHUB_REF_NAME} version=${VER}"
+          test "${GITHUB_REF_NAME}" = "v${VER}"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

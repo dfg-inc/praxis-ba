@@ -1,7 +1,7 @@
 {
   "name": "praxis-ba",
   "private": true,
-  "version": "0.1.0-alpha.44",
+  "version": "0.1.0-alpha.45",
   "description": "Praxis BA Skills plugin and praxis-ba.zip",
   "workspaces": [
     "plugins/*",
@@ -12,7 +12,7 @@
     "build": "npm run build -w @praxis/ba --if-present",
     "test": "npm run test --workspaces --if-present",
     "plugins:validate": "node tools/scripts/validate-plugins.mjs",
-    "pack:zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.44",
+    "pack:zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.45",
     "check:skill-cli": "node tools/scripts/check-skill-cli.mjs",
     "check:boundaries": "node tools/scripts/check-boundaries.mjs",
     "accept:claude-plugins": "node tools/scripts/claude-plugins-acceptance.mjs",

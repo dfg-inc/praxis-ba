@@ -1,7 +1,7 @@
 {
   "name": "praxis-ba",
-  "version": "0.1.0-alpha.44",
-  "description": "Praxis BA — business analysis: Jira epics, user stories, acceptance criteria, and Architect handoff.",
+  "version": "0.1.0-alpha.45",
+  "description": "Praxis BA \u2014 business analysis: Jira epics, user stories, acceptance criteria, and Architect handoff.",
   "author": {
     "name": "dfuture-co",
     "email": "alexey.golubev@dfuture.co"

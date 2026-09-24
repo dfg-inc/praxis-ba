@@ -175,6 +175,11 @@ function stagePlugin(plugin, version, stagingRoot) {
   writeFileSync(pluginJsonPath, `${JSON.stringify(pluginJson, null, 2)}\n`);
   writeFileSync(join(dest, "VERSION"), `${version}\n`);
   writeFileSync(join(dest, "README.md"), pluginReadme(plugin, version));
+  // Ship applicable OSS license texts with the distributable ZIP (Apache-2.0 requires NOTICE/LICENSE with redistributions).
+  for (const name of ["LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt"]) {
+    const lic = join(src, name);
+    if (existsSync(lic)) cpSync(lic, join(dest, name));
+  }
   if (existsSync(join(dest, ".mcp.json"))) rmSync(join(dest, ".mcp.json"));
   if (existsSync(join(dest, "runtime"))) rmSync(join(dest, "runtime"), { recursive: true, force: true });
   return dest;

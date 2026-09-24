@@ -37,7 +37,10 @@ function findArtifact(searchRoot, exactName) {
   if (!matches.length) {
     throw new Error(`artifact ${exactName} not found under ${searchRoot}`);
   }
-  return matches.sort()[0];
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
+  const versioned = matches.filter((p) => p.includes("/" + pkg.version + "/"));
+  const pool = versioned.length ? versioned : matches;
+  return pool.sort().at(-1);
 }
 
 function loadCompatibility(root, kind, version) {
@@ -93,6 +96,12 @@ const tag =
   process.env.GITHUB_REF_NAME ||
   process.env.CI_COMMIT_TAG ||
   `v${version}`;
+if (process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_TAG) {
+  const expected = `v${version}`;
+  if (tag !== expected && tag !== version) {
+    throw new Error(`tag must match package.json version: got ${tag}, expected ${expected}`);
+  }
+}
 const artifactName = required("PRAXIS_RELEASE_ARTIFACT_NAME");
 const searchRoot = required("PRAXIS_RELEASE_SEARCH_ROOT");
 const packageName =
