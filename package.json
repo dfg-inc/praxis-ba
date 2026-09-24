@@ -29,5 +29,13 @@
     "@praxis/plugin-sdk": "file:vendor/praxis-plugin-sdk-0.1.0-alpha.44.tgz",
     "@praxis/knowledge": "file:vendor/praxis-knowledge-0.1.0-alpha.44.tgz",
     "@praxis/project-config": "file:vendor/praxis-project-config-0.1.0-alpha.44.tgz"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfg-inc/praxis-ba.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dfg-inc/praxis-ba/issues"
+  },
+  "homepage": "https://github.com/dfg-inc/praxis-ba"
 }

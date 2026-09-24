@@ -50,7 +50,7 @@ This repo is **both** the marketplace and the plugin it distributes. To consume 
     "praxis-ba": {
       "source": {
         "source": "url",
-        "url": "git@gl.jetru.by:engineering/ai-tooling/praxis-ba.git",
+        "url": "https://github.com/dfg-inc/praxis-ba.git",
         "ref": "v1.0"
       }
     }

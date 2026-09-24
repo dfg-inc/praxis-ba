@@ -1,0 +1,35 @@
+name: Praxis BA Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run pack:zip
+      - run: npm run accept:claude-plugins
+      - name: Write release-meta.json
+        env:
+          PRAXIS_RELEASE_ARTIFACT_NAME: praxis-ba.zip
+          PRAXIS_RELEASE_SEARCH_ROOT: dist/claude-plugins
+          PRAXIS_RELEASE_PACKAGE_NAME: praxis-ba
+          PRAXIS_RELEASE_KIND: zip
+        run: node tools/scripts/write-release-meta.mjs
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/claude-plugins/**/praxis-ba.zip
+            dist/release-meta.json
+          generate_release_notes: true
