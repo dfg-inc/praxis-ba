@@ -13,10 +13,11 @@ This Skill uses tools from the **Praxis Runtime** Desktop Extension.
 
 1. If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`. Tell the user to install or enable the Praxis Runtime Desktop Extension. Do not instruct them to run CLI or edit config files.
 2. Call `praxis_doctor`.
-3. If Jira is not configured: stop with `JIRA_CONFIG_UNAVAILABLE` and the `missing` field list. Tell the user: Open Claude Desktop → Settings → Extensions → Praxis Runtime → Settings and complete Jira configuration. Never request the token in chat.
-4. If `.project` is missing: call `praxis_project_init_preview`, show inferred config, STOP, and only after approval call `praxis_project_init_apply` with `confirmation=YES`. Do not create `.project` silently.
+3. If Jira is not configured: stop Jira writes with `JIRA_CONFIG_UNAVAILABLE` and the `missing` field list. Tell the user: Open Claude Desktop → Settings → Extensions → Praxis Runtime → Settings and complete Jira configuration. Never request the token in chat. Local requirements can still continue with `praxis_workflow_preview` / `praxis_workflow_apply`. A missing Jira key is not an identity for that local work item.
+4. If a Runtime tool result has `ok: false` or `isError`, report `code` and `errors` exactly. Do not replace them with an unexplained "Praxis Runtime error". Numeric and array arguments must be sent with their schema types.
+5. If `.project` is missing: call `praxis_project_init_preview`, show inferred config, STOP, and only after approval call `praxis_project_init_apply` with `confirmation=YES`. Do not create `.project` silently.
 
-Allowed tools: common/Jira/project + BA (`praxis_ba_status`, `praxis_ba_preview`, `praxis_ba_apply`). Do not call Architect, Developer, or Quality tools. Do not start Architect.
+Allowed tools: common/Jira/project + BA (`praxis_ba_status`, `praxis_ba_preview`, `praxis_ba_apply`) and local workflow (`praxis_workflow_status`, `praxis_workflow_preview`, `praxis_workflow_apply`, `praxis_capabilities`). `praxis_workflow_apply` requires a separate human approval and matching `previewFingerprint`. Do not call Architect, Developer, or Quality tools. Do not start Architect.
 
 ## Flow
 
