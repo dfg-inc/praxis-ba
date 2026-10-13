@@ -28,6 +28,7 @@ Commands are JSON:
 - `clarify` when information is missing. Put facts already present in the request or workflow in `known`. Do not ask those again.
 - `record-decision` after the user confirms a business decision
 - `add-requirement` for requirements and acceptance criteria that are not blocked
-- `handoff` with `sourceRole=ba` and `targetRole=architect` when requirements are ready
+- `add-story` for a user story: stable `US-...` id, linked requirement ids, actor, narrative `As a [role], I want [capability], so that [business value].`, preconditions, happy path, alternatives, negative cases, edge cases, business rules, Given/When/Then acceptance criteria, expected results, dependencies, assumptions, and unresolved decisions. `confirmedBehavior` is true only after the user confirms the behavior.
+- `handoff` with `sourceRole=ba` and `targetRole=architect` when requirements are ready. Story ids travel with the handoff.
 
 `praxis_workflow_status` returns `guidance` for the current work item. Use that guidance while continuing the workflow. `praxis_capabilities` classifies installed guidance and suggestions; its `executed` list stays empty. This host does not automatically run a skill because a capability was suggested. Do not mutate Jira, Git, or releases from this skill.
