@@ -217,6 +217,8 @@ export async function packClaudePlugins(version) {
     const zipBuf = writeZip(entries, { enforcePolicy: true });
     const zipPath = join(outDir, `${plugin.id}.zip`);
     writeFileSync(zipPath, zipBuf);
+    mkdirSync(join(root, "claude-plugins"), { recursive: true });
+    writeFileSync(join(root, "claude-plugins", `${plugin.id}.zip`), zipBuf);
     zips.push({
       id: plugin.id,
       title: plugin.title,

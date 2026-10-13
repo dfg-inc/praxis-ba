@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "policy": "lockstep",
+  "version": "0.1.0-alpha.47",
+  "repositories": [
+    "praxis-core",
+    "praxis-runtime",
+    "praxis-ba",
+    "praxis-architect",
+    "praxis-developer",
+    "praxis-quality"
+  ]
+}

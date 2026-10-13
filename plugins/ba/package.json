@@ -1,6 +1,6 @@
 {
   "name": "@praxis/ba",
-  "version": "0.1.0-alpha.46",
+  "version": "0.1.0-alpha.47",
   "private": true,
   "description": "praxis-ba Claude Code plugin (migrated from adlc-ba)",
   "scripts": {
@@ -9,7 +9,7 @@
     "test": "npm run test -w @praxis/ba-canon-graph"
   },
   "dependencies": {
-    "@praxis/plugin-sdk": "file:../../vendor/praxis-plugin-sdk-0.1.0-alpha.44.tgz"
+    "@praxis/plugin-sdk": "file:../../vendor/praxis-plugin-sdk-0.1.0-alpha.47.tgz"
   },
   "license": "Apache-2.0"
 }
