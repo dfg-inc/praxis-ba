@@ -19,6 +19,7 @@ const UI_SKILLS = {
     "jira-epic-analysis",
     "resume-ba-work",
     "ba-jira-status",
+    "local-workflow",
     "jira-analyze-epic",
   ],
   architect: [

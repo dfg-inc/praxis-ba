@@ -25,7 +25,9 @@ Preview with `praxis_workflow_preview`, show the plan, and STOP. After explicit 
 Commands are JSON:
 
 - `open` for a new local work item
-- `add-requirement` for requirements and acceptance criteria
+- `clarify` when information is missing. Put facts already present in the request or workflow in `known`. Do not ask those again.
+- `record-decision` after the user confirms a business decision
+- `add-requirement` for requirements and acceptance criteria that are not blocked
 - `handoff` with `sourceRole=ba` and `targetRole=architect` when requirements are ready
 
-Call `praxis_capabilities` when the request needs security, architecture, or quality guidance. Guidance is not tool execution. Do not mutate Jira, Git, or releases from this skill.
+`praxis_workflow_status` returns `guidance` for the current work item. Use that guidance while continuing the workflow. `praxis_capabilities` classifies installed guidance and suggestions; its `executed` list stays empty. This host does not automatically run a skill because a capability was suggested. Do not mutate Jira, Git, or releases from this skill.

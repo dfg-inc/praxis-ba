@@ -10,6 +10,7 @@ export const PLUGINS = [
       "jira-epic-analysis",
       "resume-ba-work",
       "ba-jira-status",
+      "local-workflow",
     ],
     helpCommands: [["ba", "--help"], ["ba", "preview", "--help"]],
   }
