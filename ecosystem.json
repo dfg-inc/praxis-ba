@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policy": "lockstep",
+  "policy": "independent",
   "version": "0.1.0-alpha.47",
   "repositories": [
     "praxis-core",

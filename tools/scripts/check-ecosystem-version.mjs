@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Fail when this repository drifts from the lockstep ecosystem version.
+ * Fail when this repository disagrees with its own version or vendor pins.
+ * Sibling repositories are not required to use the same version.
  *
  *   node tools/scripts/check-ecosystem-version.mjs
  */

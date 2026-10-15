@@ -20,5 +20,6 @@ Download from [Releases](https://github.com/dfg-inc/praxis-ba/releases): `praxis
 ## Release
 
 - Artifact: `dist/claude-plugins/<version>/praxis-ba.zip`
-- Core pins: tracked `vendor/*.tgz`
-- Tag `v$version` → GitHub Release via Actions
+- Core pins: tracked `vendor/*.tgz`. Update them only when this plugin needs a newer Core: `node tools/scripts/set-ecosystem-version.mjs --vendor <core-version>`.
+- This plugin's version is independent of Core, Runtime, and the other role plugins. `ecosystem.json` records it (`policy: independent`).
+- Tag `v$version` on GitLab first. After that tag pipeline passes, GitHub Actions publishes the ZIP.

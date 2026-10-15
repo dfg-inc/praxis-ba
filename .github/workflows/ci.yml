@@ -69,11 +69,12 @@ jobs:
             dist/claude-plugins/
             dist/zip-checksums.json
 
-  version_lockstep:
+  version_check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node tools/scripts/check-ecosystem-version.mjs
+      - name: Check this repository version
+        run: node tools/scripts/check-ecosystem-version.mjs

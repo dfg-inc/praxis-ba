@@ -1,7 +1,8 @@
 /**
  * Shared SemVer helpers for one Praxis repository.
- * ecosystem.json declares the lockstep version shared by all six repositories.
- * Root package.json in this checkout must match that version.
+ * ecosystem.json records this repository's version. The six repositories
+ * release independently; sibling versions are not required to match.
+ * Root package.json in this checkout must match ecosystem.json in this checkout.
  */
 import { createHash } from "node:crypto";
 import {
@@ -27,7 +28,7 @@ export const SEMVER_RE =
  */
 export const INTERNAL_WORKSPACE_RANGE = "*";
 
-/** Repositories that must publish the same version. Not a monorepo. */
+/** Known Praxis repositories. Not a monorepo, and not one shared version. */
 export const ECOSYSTEM_REPOS = [
   "praxis-core",
   "praxis-runtime",
@@ -38,6 +39,12 @@ export const ECOSYSTEM_REPOS = [
 ];
 
 const ALPHA_VERSION_RE = /0\.1\.0-alpha\.\d+/;
+
+/** Declarations of other products, or of vendored Core. Not this repo's version. */
+const SKIP_PRODUCT_VERSION = new Set([
+  "vendor/manifest.json",
+  "packages/catalog/catalog.json",
+]);
 
 const DEP_SECTIONS = [
   "dependencies",
@@ -146,19 +153,8 @@ export function applyVersionToData(relPath, data, version) {
   const base = relPath.split("/").pop();
   let changed = false;
 
-  if (base === "catalog.json") {
-    for (const p of data.plugins ?? []) {
-      if (p.version !== version) {
-        p.version = version;
-        changed = true;
-      }
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    if (data.updated !== today) {
-      data.updated = today;
-      changed = true;
-    }
-    return changed;
+  if (base === "catalog.json" || relPath === "vendor/manifest.json") {
+    return false;
   }
 
   if (base === "marketplace.json") {
@@ -176,17 +172,13 @@ export function applyVersionToData(relPath, data, version) {
       data.version = version;
       changed = true;
     }
-    if (base === "package.json" && rewriteFileAndScriptVersions(data, version)) {
+    if (base === "package.json" && rewriteScriptVersions(data, version)) {
       changed = true;
     }
     return changed;
   }
 
-  if (
-    relPath === "vendor/manifest.json" ||
-    relPath === "claude-extensions/manifest.json" ||
-    relPath === "ecosystem.json"
-  ) {
+  if (relPath === "claude-extensions/manifest.json" || relPath === "ecosystem.json") {
     if (data.version !== version) {
       data.version = version;
       changed = true;
@@ -197,26 +189,36 @@ export function applyVersionToData(relPath, data, version) {
   return false;
 }
 
-/** Replace alpha versions inside file: pins and npm scripts. Leaves workspace "*". */
-export function rewriteFileAndScriptVersions(data, version) {
+function alphaVersionsIn(value) {
+  return typeof value === "string" ? (value.match(/0\.1\.0-alpha\.\d+/g) ?? []) : [];
+}
+
+/** Replace this repository's version inside npm scripts. Leaves file: pins alone. */
+export function rewriteScriptVersions(data, version) {
   let changed = false;
-  if (data.scripts && typeof data.scripts === "object") {
-    for (const [key, value] of Object.entries(data.scripts)) {
-      if (typeof value !== "string" || !ALPHA_VERSION_RE.test(value)) continue;
-      const next = value.replace(/0\.1\.0-alpha\.\d+/g, version);
-      if (next !== value) {
-        data.scripts[key] = next;
-        changed = true;
-      }
+  if (!data.scripts || typeof data.scripts !== "object") return false;
+  for (const [key, value] of Object.entries(data.scripts)) {
+    if (typeof value !== "string" || !ALPHA_VERSION_RE.test(value)) continue;
+    const next = value.replace(/0\.1\.0-alpha\.\d+/g, version);
+    if (next !== value) {
+      data.scripts[key] = next;
+      changed = true;
     }
   }
+  return changed;
+}
+
+/** Replace vendored Core versions inside file: pins. Does not change product version. */
+export function rewriteVendorPinVersions(data, vendorVersion) {
+  let changed = false;
   for (const section of DEP_SECTIONS) {
     const deps = data[section];
     if (!deps || typeof deps !== "object") continue;
     for (const [name, range] of Object.entries(deps)) {
       if (typeof range !== "string" || !range.startsWith("file:")) continue;
+      if (!name.startsWith("@praxis/")) continue;
       if (!ALPHA_VERSION_RE.test(range)) continue;
-      const next = range.replace(/0\.1\.0-alpha\.\d+/g, version);
+      const next = range.replace(/0\.1\.0-alpha\.\d+/g, vendorVersion);
       if (next !== range) {
         deps[name] = next;
         changed = true;
@@ -366,6 +368,7 @@ export function checkVersionConsistency(root, expectedVersion) {
   const expected = expectedVersion ?? rootPkg.version;
   const mismatches = [];
   for (const rel of discoverVersionFiles(root)) {
+    if (SKIP_PRODUCT_VERSION.has(rel)) continue;
     const data = readJson(join(root, rel));
     const { versions } = extractVersions(rel, data);
     for (const v of versions) {
@@ -397,28 +400,57 @@ export function checkVersionConsistency(root, expectedVersion) {
 export function writeEcosystem(root, version) {
   writeJson(join(root, "ecosystem.json"), {
     schemaVersion: 1,
-    policy: "lockstep",
+    policy: "independent",
     version,
     repositories: ECOSYSTEM_REPOS,
   });
+}
+
+/**
+ * Point this checkout's file: pins and vendor/manifest.json at one Core version.
+ * Does not change this repository's version and does not touch sibling checkouts.
+ * The caller replaces vendor/*.tgz and refreshes the lockfile.
+ */
+export function syncVendorPins(root, vendorVersion, { dryRun = false } = {}) {
+  const changed = [];
+  for (const rel of discoverVersionFiles(root)) {
+    if (!rel.endsWith("package.json")) continue;
+    const abs = join(root, rel);
+    const data = readJson(abs);
+    const clone = structuredClone(data);
+    if (!rewriteVendorPinVersions(clone, vendorVersion)) continue;
+    changed.push(rel);
+    if (!dryRun) writeJson(abs, clone);
+  }
+  const manifestRel = "vendor/manifest.json";
+  const manifestPath = join(root, manifestRel);
+  if (existsSync(manifestPath)) {
+    const manifest = readJson(manifestPath);
+    if (manifest.version !== vendorVersion) {
+      manifest.version = vendorVersion;
+      changed.push(manifestRel);
+      if (!dryRun) writeJson(manifestPath, manifest);
+    }
+  }
+  return { changed, vendorVersion };
 }
 
 function pushMismatch(mismatches, path, found, expected, kind) {
   mismatches.push({ path, found, expected, kind });
 }
 
-export function checkVendorAndPins(root, expected) {
+export function checkVendorAndPins(root, productVersion) {
   const mismatches = [];
+  const pinVersions = new Set();
   for (const rel of discoverVersionFiles(root)) {
     if (!rel.endsWith("package.json")) continue;
     const data = readJson(join(root, rel));
     if (data.scripts) {
       for (const [key, value] of Object.entries(data.scripts)) {
         if (typeof value !== "string") continue;
-        const found = value.match(/0\.1\.0-alpha\.\d+/g) ?? [];
-        for (const v of found) {
-          if (v !== expected) {
-            pushMismatch(mismatches, rel, `${key}=${v}`, expected, "script-version");
+        for (const v of alphaVersionsIn(value)) {
+          if (v !== productVersion) {
+            pushMismatch(mismatches, rel, `${key}=${v}`, productVersion, "script-version");
           }
         }
       }
@@ -428,48 +460,80 @@ export function checkVendorAndPins(root, expected) {
       if (!deps) continue;
       for (const [name, range] of Object.entries(deps)) {
         if (typeof range !== "string" || !range.startsWith("file:")) continue;
-        const found = range.match(/0\.1\.0-alpha\.\d+/g) ?? [];
-        if (found.length === 0 || found.some((v) => v !== expected)) {
-          pushMismatch(
-            mismatches,
-            rel,
-            `${name}@${range}`,
-            `file:…-${expected}.tgz`,
-            "vendor-pin",
-          );
+        if (!name.startsWith("@praxis/")) continue;
+        const found = alphaVersionsIn(range);
+        if (found.length !== 1) {
+          pushMismatch(mismatches, rel, `${name}@${range}`, "one file: version", "vendor-pin");
+          continue;
         }
+        pinVersions.add(found[0]);
       }
     }
   }
 
   const vendorDir = join(root, "vendor");
+  const manifestPath = join(vendorDir, "manifest.json");
+  const manifest = existsSync(manifestPath) ? readJson(manifestPath) : null;
+  const manifestVersion = manifest?.version ?? null;
+  if (pinVersions.size > 1) {
+    pushMismatch(
+      mismatches,
+      "package.json",
+      [...pinVersions].join(","),
+      "one vendored Core version",
+      "vendor-pin",
+    );
+  }
+  const pinVersion = pinVersions.size === 1 ? [...pinVersions][0] : null;
+  if (manifestVersion && pinVersion && manifestVersion !== pinVersion) {
+    pushMismatch(
+      mismatches,
+      "vendor/manifest.json",
+      manifestVersion,
+      pinVersion,
+      "vendor-pin",
+    );
+  }
+  const vendorVersion = manifestVersion || pinVersion;
+
   if (existsSync(vendorDir)) {
     const tarballs = readdirSync(vendorDir).filter((name) => name.endsWith(".tgz"));
     for (const name of tarballs) {
-      if (!name.endsWith(`-${expected}.tgz`)) {
-        pushMismatch(mismatches, `vendor/${name}`, name, `*-${expected}.tgz`, "stale-vendor-tarball");
+      if (!vendorVersion || !name.endsWith(`-${vendorVersion}.tgz`)) {
+        pushMismatch(
+          mismatches,
+          `vendor/${name}`,
+          name,
+          vendorVersion ? `*-${vendorVersion}.tgz` : "declared vendor version",
+          "stale-vendor-tarball",
+        );
       }
     }
-    const manifestPath = join(vendorDir, "manifest.json");
-    if (existsSync(manifestPath)) {
-      const manifest = readJson(manifestPath);
-      for (const pkgName of manifest.packages ?? []) {
-        if (typeof pkgName !== "string") continue;
-        const file = `praxis-${pkgName.replace(/^@praxis\//, "")}-${expected}.tgz`;
-        if (!tarballs.includes(file)) {
-          pushMismatch(mismatches, "vendor/manifest.json", pkgName, file, "missing-vendor-tarball");
-        }
+    for (const pkgName of manifest?.packages ?? []) {
+      if (typeof pkgName !== "string" || !vendorVersion) continue;
+      const file = `praxis-${pkgName.replace(/^@praxis\//, "")}-${vendorVersion}.tgz`;
+      if (!tarballs.includes(file)) {
+        pushMismatch(mismatches, "vendor/manifest.json", pkgName, file, "missing-vendor-tarball");
       }
     }
+  } else if (pinVersions.size > 0) {
+    pushMismatch(mismatches, "vendor", "missing", "vendor/*.tgz", "missing-vendor-tarball");
   }
 
   const lockPath = join(root, "package-lock.json");
   if (existsSync(lockPath)) {
+    const allowed = new Set([productVersion]);
+    if (vendorVersion) allowed.add(vendorVersion);
     const text = readFileSync(lockPath, "utf8");
-    const found = new Set(text.match(/0\.1\.0-alpha\.\d+/g) ?? []);
-    for (const v of found) {
-      if (v !== expected) {
-        pushMismatch(mismatches, "package-lock.json", v, expected, "lockfile-version");
+    for (const v of new Set(alphaVersionsIn(text))) {
+      if (!allowed.has(v)) {
+        pushMismatch(
+          mismatches,
+          "package-lock.json",
+          v,
+          [...allowed].join(" or "),
+          "lockfile-version",
+        );
       }
     }
   }
@@ -543,46 +607,6 @@ export function checkCommittedArtifacts(root, expected) {
   return mismatches;
 }
 
-export function checkSiblingEcosystems(root, expected) {
-  const mismatches = [];
-  const parent = dirname(root);
-  const present = [];
-  for (const name of ECOSYSTEM_REPOS) {
-    const other = join(parent, name);
-    const marker = join(other, "ecosystem.json");
-    if (!existsSync(marker)) continue;
-    present.push(other);
-    const version = readJson(marker).version;
-    if (version !== expected) {
-      pushMismatch(mismatches, marker, version, expected, "sibling-version");
-    }
-  }
-  if (present.length === ECOSYSTEM_REPOS.length) {
-    const hashes = new Map();
-    for (const repo of present) {
-      for (const rel of [
-        "tools/scripts/release-lib.mjs",
-        "tools/scripts/check-ecosystem-version.mjs",
-        "tools/scripts/set-ecosystem-version.mjs",
-        "tools/scripts/check-coordinated-release.mjs",
-      ]) {
-        const abs = join(repo, rel);
-        if (!existsSync(abs)) {
-          pushMismatch(mismatches, abs, "missing", "identical lockstep script", "script-drift");
-          continue;
-        }
-        const sha = createHash("sha256").update(readFileSync(abs)).digest("hex");
-        const prev = hashes.get(rel);
-        if (prev && prev !== sha) {
-          pushMismatch(mismatches, rel, sha, prev, "script-drift");
-        }
-        hashes.set(rel, sha);
-      }
-    }
-  }
-  return mismatches;
-}
-
 export function releaseTagFromEnv() {
   if (process.env.CI_COMMIT_TAG) return process.env.CI_COMMIT_TAG;
   if (process.env.GITHUB_REF_TYPE === "tag" && process.env.GITHUB_REF_NAME) {
@@ -592,22 +616,25 @@ export function releaseTagFromEnv() {
 }
 
 /**
- * Lockstep invariants for this checkout.
- * Sibling repositories are checked when their checkouts sit next to this one.
+ * Invariants for this checkout only.
  * A release tag is required only when CI is already building a tag.
+ * Sibling repositories are not compared.
  */
 export function checkEcosystemRelease(root, expectedVersion) {
   const rootPkg = readJson(join(root, "package.json"));
   const ecosystem = existsSync(join(root, "ecosystem.json"))
     ? readJson(join(root, "ecosystem.json"))
     : null;
-  const expected = expectedVersion ?? ecosystem?.version ?? rootPkg.version;
+  const expected = expectedVersion ?? rootPkg.version;
   const mismatches = [];
   if (!ecosystem) {
     pushMismatch(mismatches, "ecosystem.json", "missing", expected, "ecosystem");
   } else {
-    if (ecosystem.policy !== "lockstep") {
-      pushMismatch(mismatches, "ecosystem.json", ecosystem.policy, "lockstep", "ecosystem");
+    if (ecosystem.policy !== "independent") {
+      pushMismatch(mismatches, "ecosystem.json", ecosystem.policy ?? "missing", "independent", "ecosystem");
+    }
+    if (ecosystem.version !== expected) {
+      pushMismatch(mismatches, "ecosystem.json", ecosystem.version, expected, "ecosystem");
     }
     if (JSON.stringify(ecosystem.repositories) !== JSON.stringify(ECOSYSTEM_REPOS)) {
       pushMismatch(
@@ -623,7 +650,6 @@ export function checkEcosystemRelease(root, expectedVersion) {
   mismatches.push(...versions.mismatches);
   mismatches.push(...checkVendorAndPins(root, expected));
   mismatches.push(...checkCommittedArtifacts(root, expected));
-  mismatches.push(...checkSiblingEcosystems(root, expected));
   const tag = releaseTagFromEnv();
   if (tag && tag !== `v${expected}` && tag !== expected) {
     pushMismatch(mismatches, "release-tag", tag, `v${expected}`, "release-tag");

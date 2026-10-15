@@ -14,7 +14,7 @@ default:
     paths: [.npm/]
   before_script:
     - node -v && npm -v
-    - node tools/scripts/check-ecosystem-version.mjs
+    - node tools/scripts/check-ecosystem-version.mjs # this repo only; siblings may differ
     - npm ci --cache .npm --prefer-offline
 
 variables:
