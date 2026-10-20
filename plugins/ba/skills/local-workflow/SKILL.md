@@ -32,3 +32,7 @@ Commands are JSON:
 - `handoff` with `sourceRole=ba` and `targetRole=architect` when requirements are ready. Story ids travel with the handoff.
 
 `praxis_workflow_status` returns `guidance` for the current work item. Use that guidance while continuing the workflow. `praxis_capabilities` classifies installed guidance and suggestions; its `executed` list stays empty. This host does not automatically run a skill because a capability was suggested. Do not mutate Jira, Git, or releases from this skill.
+
+## Inspect stored work
+
+When the user asks what exists ("show requirements, Stories, architecture decisions, current work and Quality results"), call `praxis_workflow_inspect` (read-only; no Jira needed). Start with `view: "overview"`, then `requirements`, `stories`, `decisions`, `work`, `handoffs`, `open-items` or `quality`, or `all`. Pass `workItemId` when several Work Items exist, and `id` for one record. Report what it returns, including Story confirmation state: an unconfirmed Story stays unconfirmed. Do not ask the user to open files for anything Runtime can return.

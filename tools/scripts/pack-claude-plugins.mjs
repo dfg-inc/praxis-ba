@@ -10,8 +10,11 @@
  *   README.md
  *   VERSION
  */
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import {
   cpSync,
+  mkdtempSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -23,6 +26,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import * as esbuild from "esbuild";
 import {
   PLUGINS,
   MANIFEST_CONTRACT,
@@ -32,6 +36,7 @@ import {
 import { inspectUploadZipBuffer } from "./hosted-plugin-policy.mjs";
 import {
   checkSafeArchivePath,
+  extractZip,
   directoryEntriesFor,
   invalidPathError,
   writeZip,
@@ -159,6 +164,27 @@ Claude Chat may show Skills, but local edit/test flow needs workspace/runtime ca
 /** Directories a full (all-skills) Desktop upload carries next to skills/. Code (canon-graph, tools, bin) stays out. */
 const FULL_EXTRA_DIRS = ["prompts", "rules", "templates"];
 
+/**
+ * The plugin's session bootstrap ships as one self-contained .cjs: the source .mjs imports @praxis/plugin-sdk,
+ * which an installed plugin does not have. Hosts that cannot execute it (Claude Desktop Chat) use the Runtime
+ * tool praxis_session_start instead; this file is the CLI / Claude Code path.
+ */
+function bundleSessionBootstrap(src, dest) {
+  const entry = join(src, "tools", "session-bootstrap.mjs");
+  if (!existsSync(entry)) return;
+  esbuild.buildSync({
+    entryPoints: [entry],
+    outfile: join(dest, "tools", "session-bootstrap.cjs"),
+    bundle: true,
+    platform: "node",
+    target: "node20",
+    format: "cjs",
+    logLevel: "silent",
+    banner: { js: "var __import_meta_url = require('url').pathToFileURL(__filename).href;" },
+    define: { "import.meta.url": "__import_meta_url" },
+  });
+}
+
 function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   const dest = join(stagingRoot, plugin.id);
   rmSync(dest, { recursive: true, force: true });
@@ -178,6 +204,7 @@ function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   for (const dir of allSkills ? FULL_EXTRA_DIRS : ["prompts"]) {
     copyTreeFiltered(join(src, dir), join(dest, dir));
   }
+  if (allSkills) bundleSessionBootstrap(src, dest);
   const pluginJsonPath = join(dest, ".claude-plugin", "plugin.json");
   if (!existsSync(pluginJsonPath)) fail(`missing ${pluginJsonPath}`);
   const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
@@ -245,6 +272,23 @@ export async function packClaudePlugins(version) {
   return { outDir, manifest };
 }
 
+/** Runs the bootstrap from the unpacked archive, outside the repository, so a missing dependency fails the build. */
+function smokeRunPackagedBootstrap(zipBuf, id) {
+  const dir = mkdtempSync(join(tmpdir(), "praxis-zip-smoke-"));
+  try {
+    extractZip(zipBuf, join(dir, "plugin"));
+    const script = join(dir, "plugin", "tools", "session-bootstrap.cjs");
+    if (!existsSync(script)) return;
+    mkdirSync(join(dir, "repo"));
+    const run = spawnSync(process.execPath, [script, join(dir, "repo")], { cwd: dir, encoding: "utf8" });
+    if (run.status !== 0 || !run.stdout.includes("plugin ")) {
+      fail(`${id}: packaged session-bootstrap.cjs does not run from the unpacked archive\n${run.stderr || run.stdout}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 /**
  * Full Desktop upload: every skill of the plugin, not just the hosted subset. Checked against the upload rules
  * before it is written; nothing is written when a check fails.
@@ -259,6 +303,7 @@ export async function packFullPluginZip(pluginId, version, outFile) {
   const zipBuf = writeZip(collectZipEntries(dest), { enforcePolicy: true });
   const { issues, skillCount } = inspectUploadZipBuffer(zipBuf);
   if (issues.length) fail(`full ZIP fails Claude Desktop upload checks:\n${issues.join("\n")}`);
+  smokeRunPackagedBootstrap(zipBuf, plugin.id);
   mkdirSync(dirname(resolve(outFile)), { recursive: true });
   writeFileSync(outFile, zipBuf);
   console.log(`claude-plugins full ZIP -> ${outFile} (${skillCount} skills, sha256 ${sha256(zipBuf)})`);

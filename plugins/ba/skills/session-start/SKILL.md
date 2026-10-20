@@ -5,22 +5,27 @@ description: Use at the start of a BA session — runs the session bootstrap scr
 
 # Session start
 
-WBS 1.4 / 1.5 precursor: load `.project` defaults and the applicable knowledge slice for **role `ba`**, **stage `research`**, then print a short bootstrap summary. Does not mutate canon.
+Load `.project` defaults, the applicable knowledge rules for role `ba`, stage `research` (override with `stage`; not for quality), and the Work Items of this repository. Does not mutate canon.
 
 ## What happens
 
-1. From the product repo root (the directory that has or should have `.project`), run:
-   ```
-   node <plugin-dir>/tools/session-bootstrap.mjs [repo-root]
-   ```
-   Omit the argument to use the current working directory. Packaged plugins ship
-   `tools/session-bootstrap.cjs` (same entry). Workspace source needs
-   `@praxis/plugin-sdk` built.
-2. Read the printed lines: plugin version, `.project` status (missing / loaded / invalid), knowledge rules loaded or why skipped/unavailable.
-3. If `.project` is missing, surface the suggested path and continue with defaults only after the human acknowledges.
-4. If `knowledge.path` is unset, treat rules as **not applied** (explicit skipped) — do not invent a dataset path.
-5. Proceed to `status` or the skill the human asked for.
+1. Call the Runtime tool **`praxis_session_start`** with `role: "ba"` (and `repo` when it is not the current directory). It works in every host, including Claude Desktop Chat, where skills run in an isolated sandbox and cannot execute local scripts. It is read-only and starts nothing.
+   - If `praxis_session_start` is not available, stop with `PRAXIS_RUNTIME_UNAVAILABLE`. Do not substitute a guess.
+2. Show the human what it returned: Runtime version and build fingerprint, `.project` status (missing / loaded / invalid), knowledge rules loaded or why skipped, the Work Items with the current one marked, and `nextSteps`.
+3. If `.project` is missing, surface the suggested path and continue with defaults only after the human acknowledges. If `knowledge.path` is unset, rules are **not applied**; do not invent a dataset path.
+4. If several Work Items exist and none is selected, ask which one and pass `workItemId` from then on.
+5. To show stored requirements, Stories, decisions, handoffs, open items or Quality evidence, call **`praxis_workflow_inspect`**. Do not ask the human to open files.
+
+## Optional local script (CLI / Claude Code)
+
+Where the host can run local commands, the plugin also ships a bootstrap script that prints the same facts:
+
+```
+node <plugin-dir>/tools/session-bootstrap.cjs [repo-root]
+```
+
+The packaged plugin ships the self-contained `.cjs`; a source checkout has `tools/session-bootstrap.mjs`, which needs `@praxis/plugin-sdk` built. The script is a convenience. The Runtime tool is the supported path.
 
 ## Done when
 
-The human has seen the bootstrap summary for this session. No canon writes.
+The human has seen the session summary. No writes.
