@@ -55,3 +55,21 @@ Desktop.ini
 .project
 .project.yaml
 .project.yml
+
+# >>> praxis workflow state policy >>>
+# Track: .praxis/workflow/items/*.json and .praxis/quality/{checks.json,adapter.mjs,proposals/}.
+# Everything below is private, transient, per-operator or machine-specific.
+.praxis/workflow/index.json
+.praxis/workflow/state.json
+.praxis/workflow/.lock/
+.praxis/workflow/.lock.stale-*
+.praxis/workflow/**/*.tmp
+.praxis/workflow/last-verification.json
+.praxis/approvals/
+.praxis/local/
+.praxis/**/*.ledger
+.praxis/**/*.pem
+.praxis/**/*.key
+.praxis/**/*.log
+.praxis/quality/**/*.tmp
+# <<< praxis workflow state policy <<<

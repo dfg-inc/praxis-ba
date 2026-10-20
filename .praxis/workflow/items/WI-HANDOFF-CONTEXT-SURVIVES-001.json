@@ -1,0 +1,145 @@
+{
+  "contract": "praxis.workflow.state",
+  "version": "1.0.0",
+  "workflowId": "WF-WI-HANDOFF-CONTEXT-SURVIVES-001",
+  "projectId": "praxis-core",
+  "workItem": {
+    "id": "WI-HANDOFF-CONTEXT-SURVIVES-001",
+    "projectId": "praxis-core",
+    "title": "Handoff context survives every role hop",
+    "source": "repository",
+    "status": "in_progress",
+    "revision": 2
+  },
+  "requirements": [
+    {
+      "id": "REQ-HOF-001",
+      "statement": "Risks, open questions, blockers, assumptions and notes raised in one role's handoff must reach every later role's handoff for the same work item until explicitly resolved.",
+      "revision": 1,
+      "status": "proposed",
+      "acceptanceCriteria": [
+        {
+          "id": "REQ-HOF-001-AC-01",
+          "requirementId": "REQ-HOF-001",
+          "statement": "Given a BA to Architect handoff with a risk, open question, blocker and note, the Architect to Developer and Developer to Quality handoffs still contain them.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-HOF-001-AC-02",
+          "requirementId": "REQ-HOF-001",
+          "statement": "A handoff may list resolved items by exact text; resolved items are not carried forward and the resolution is recorded.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-HOF-001-AC-03",
+          "requirementId": "REQ-HOF-001",
+          "statement": "Items supplied on the later handoff are added without duplicating carried items.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-HOF-001-AC-04",
+          "requirementId": "REQ-HOF-001",
+          "statement": "Carry-forward only reads handoffs of the same work item that target the new handoff's source role.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-HOF-001-AC-05",
+          "requirementId": "REQ-HOF-001",
+          "statement": "Decision records, notes and revision metadata continue to be preserved on every handoff.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-HOF-001-AC-06",
+          "requirementId": "REQ-HOF-001",
+          "statement": "A regression drives the chain through real MCP praxis_workflow_preview and praxis_workflow_apply calls and checks the persisted state file.",
+          "revision": 1
+        }
+      ],
+      "serviceIds": [],
+      "assumptionIds": []
+    }
+  ],
+  "services": [],
+  "handoffs": [
+    {
+      "contract": "praxis.role.handoff",
+      "version": "1.0.0",
+      "workflowId": "WF-WI-HANDOFF-CONTEXT-SURVIVES-001",
+      "workItemId": "WI-HANDOFF-CONTEXT-SURVIVES-001",
+      "handoffId": "HO-1",
+      "sourceRole": "ba",
+      "targetRole": "architect",
+      "serviceIds": [],
+      "requirementIds": [
+        "REQ-HOF-001"
+      ],
+      "acceptanceCriterionIds": [
+        "REQ-HOF-001-AC-01",
+        "REQ-HOF-001-AC-02",
+        "REQ-HOF-001-AC-03",
+        "REQ-HOF-001-AC-04",
+        "REQ-HOF-001-AC-05",
+        "REQ-HOF-001-AC-06"
+      ],
+      "storyIds": [],
+      "artifactRefs": [],
+      "decisions": [],
+      "assumptions": [],
+      "openQuestions": [
+        "Should resolved items remain visible in later handoffs as history?"
+      ],
+      "risks": [],
+      "blockers": [],
+      "decisionRecords": [],
+      "resolved": [],
+      "nextActions": [],
+      "readiness": "ready",
+      "evidenceRefs": [],
+      "revision": 1,
+      "fingerprint": "sha256:a5230a07a65927c4e496e927c540990492014e141b18a5a78049a070db68d740"
+    }
+  ],
+  "findings": [],
+  "verdicts": [],
+  "decisions": [
+    {
+      "id": "DEC-HOF-001",
+      "statement": "Add optional resolved: string[] to the handoff command and handoff record. createHandoff-time carry-forward in workflow.ts: take the latest handoff of this work item whose targetRole equals the new handoff's sourceRole; carry its risks, openQuestions, blockers, assumptions, minus any text listed in resolved; union with items on the new command, deduplicated, order preserved. Resolved items are stored in the handoff's resolved[] for audit. Items resolved are not removed from earlier handoffs (history is immutable). notes: command value, else incoming handoff notes, else state notes. Open question answered: resolved items stay visible only as resolved[] history, not as active items. Handoff fingerprint covers the carried content so replay detection stays correct. Existing persisted handoffs without resolved[] stay valid (field defaults to []).",
+      "confirmed": true,
+      "revision": 2
+    }
+  ],
+  "openQuestions": [],
+  "risks": [],
+  "blockers": [],
+  "assumptions": [],
+  "implementationUnits": [
+    {
+      "id": "IMPL-HOF-001",
+      "serviceId": "praxis-core-contracts",
+      "requirementIds": [
+        "REQ-HOF-001"
+      ],
+      "path": "packages/contracts/src/workflow.ts",
+      "summary": "praxis-core 439f5b2: carryForwardContext carries risks, openQuestions, blockers, assumptions and notes from the latest handoff addressed to the source role, minus handoff.resolved; resolved is audit-only and only hashed when present. praxis-runtime 896e8bf: vendor refresh + MCP-level regression (handoff-context.test.ts) that failed with HO-2 risks [] before the vendor update. Core tests: handoff-context.test.ts (7), negative control verified.",
+      "contractRef": "DEC-HOF-001",
+      "stale": false
+    }
+  ],
+  "stories": [],
+  "coverage": [],
+  "changes": [],
+  "stage": "in_progress",
+  "history": [
+    {
+      "revision": 1,
+      "stage": "draft",
+      "note": "A risk, open question, blocker or note recorded in a BA to Architect handoff is absent from the Architect to Developer and Developer to Quality handoffs, because each handoff starts from workflow-level fields only. The installed Desktop bundle additionally hard-codes risks: [] and omits notes and decision records. Reproduced 2026-10-20 in current source with a three-hop chain. Cross-repo note: the code lives in praxis-core (contracts/workflow.ts); work item recorded in praxis-ba because the sing"
+    },
+    {
+      "revision": 2,
+      "stage": "in_progress",
+      "note": "ba → architect"
+    }
+  ]
+}
