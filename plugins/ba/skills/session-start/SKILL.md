@@ -5,7 +5,7 @@ description: Use at the start of a BA session — runs the session bootstrap scr
 
 # Session start
 
-Load `.project` defaults, the applicable knowledge rules for role `ba`, stage `research` (override with `stage`; not for quality), and the Work Items of this repository. Does not mutate canon.
+Load `.project` defaults, the applicable knowledge rules for role `ba`, stage `research` (override with `stage`), and the Work Items of this repository. Does not mutate canon.
 
 ## What happens
 
