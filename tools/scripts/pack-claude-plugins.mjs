@@ -29,6 +29,7 @@ import {
   distClaudePluginsDir,
   repoClaudePluginsDir as repoDirFor,
 } from "./claude-plugins-shared.mjs";
+import { inspectUploadZipBuffer } from "./hosted-plugin-policy.mjs";
 import {
   checkSafeArchivePath,
   directoryEntriesFor,
@@ -155,7 +156,10 @@ Claude Chat may show Skills, but local edit/test flow needs workspace/runtime ca
 `;
 }
 
-function stagePlugin(plugin, version, stagingRoot) {
+/** Directories a full (all-skills) Desktop upload carries next to skills/. Code (canon-graph, tools, bin) stays out. */
+const FULL_EXTRA_DIRS = ["prompts", "rules", "templates"];
+
+function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   const dest = join(stagingRoot, plugin.id);
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
@@ -163,10 +167,17 @@ function stagePlugin(plugin, version, stagingRoot) {
   copyTreeFiltered(join(src, ".claude-plugin"), join(dest, ".claude-plugin"));
   const market = join(dest, ".claude-plugin", "marketplace.json");
   if (existsSync(market)) rmSync(market);
-  for (const skill of plugin.requiredSkills) {
+  const skills = allSkills
+    ? readdirSync(join(src, "skills"))
+        .filter((n) => !isJunkName(n) && lstatSync(join(src, "skills", n)).isDirectory())
+        .sort()
+    : plugin.requiredSkills;
+  for (const skill of skills) {
     copyTreeFiltered(join(src, "skills", skill), join(dest, "skills", skill));
   }
-  copyTreeFiltered(join(src, "prompts"), join(dest, "prompts"));
+  for (const dir of allSkills ? FULL_EXTRA_DIRS : ["prompts"]) {
+    copyTreeFiltered(join(src, dir), join(dest, dir));
+  }
   const pluginJsonPath = join(dest, ".claude-plugin", "plugin.json");
   if (!existsSync(pluginJsonPath)) fail(`missing ${pluginJsonPath}`);
   const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
@@ -234,6 +245,26 @@ export async function packClaudePlugins(version) {
   return { outDir, manifest };
 }
 
+/**
+ * Full Desktop upload: every skill of the plugin, not just the hosted subset. Checked against the upload rules
+ * before it is written; nothing is written when a check fails.
+ */
+export async function packFullPluginZip(pluginId, version, outFile) {
+  const plugin = PLUGINS.find((p) => p.id === pluginId);
+  if (!plugin) fail(`unknown plugin ${pluginId}`);
+  const staging = join(root, "dist", "claude-plugins-full-staging", version);
+  rmSync(staging, { recursive: true, force: true });
+  mkdirSync(staging, { recursive: true });
+  const dest = stagePlugin(plugin, version, staging, { allSkills: true });
+  const zipBuf = writeZip(collectZipEntries(dest), { enforcePolicy: true });
+  const { issues, skillCount } = inspectUploadZipBuffer(zipBuf);
+  if (issues.length) fail(`full ZIP fails Claude Desktop upload checks:\n${issues.join("\n")}`);
+  mkdirSync(dirname(resolve(outFile)), { recursive: true });
+  writeFileSync(outFile, zipBuf);
+  console.log(`claude-plugins full ZIP -> ${outFile} (${skillCount} skills, sha256 ${sha256(zipBuf)})`);
+  return { outFile, skillCount, sha256: sha256(zipBuf) };
+}
+
 export { PLUGINS, buildManifest };
 
 const thisFile = fileURLToPath(import.meta.url);
@@ -244,7 +275,12 @@ if (process.argv[1] && resolve(process.argv[1]) === thisFile) {
     (i >= 0 ? argv[i + 1] : undefined) ||
     process.env.VERSION ||
     JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
-  packClaudePlugins(version).catch((err) => {
+  const full = argv.indexOf("--full");
+  const job =
+    full >= 0
+      ? packFullPluginZip(argv[full + 1], version, resolve(argv[argv.indexOf("--out") + 1]))
+      : packClaudePlugins(version);
+  job.catch((err) => {
     console.error(err instanceof Error ? err.message : err);
     process.exit(1);
   });

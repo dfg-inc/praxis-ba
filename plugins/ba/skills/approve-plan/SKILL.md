@@ -1,6 +1,6 @@
 ---
 name: approve-plan
-description: Use to record a human's plan-approval decision for a `ready` WP — the reusable human gate `prepare-wp` calls into once its definition-of-ready check is green and a plan exists at `wp/<id>/plan.md`.
+description: Use to record a human's plan-approval decision for a `ready` WP — the reusable human gate `prepare-wp` calls into once its definition-of-ready check is green and a plan exists at `wp/{id}/plan.md`.
 ---
 
 # Approve Plan

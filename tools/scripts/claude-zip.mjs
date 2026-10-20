@@ -319,7 +319,7 @@ export function inspectZipEntries(buffer) {
   return { entries, issues };
 }
 
-function readLocalFile(buffer, entry) {
+export function readLocalFile(buffer, entry) {
   const p = entry.localOffset;
   if (buffer.readUInt32LE(p) !== 0x04034b50) {
     throw new Error(`invalid local header: ${entry.name}`);

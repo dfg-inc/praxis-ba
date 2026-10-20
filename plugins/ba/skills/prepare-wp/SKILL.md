@@ -1,6 +1,6 @@
 ---
 name: prepare-wp
-description: Use once a CR's impact set is realized and the FR/NFR/BR slice it produced is ready to hand off — authors the WP folder (`wp/<id>/index.md`) directly from its template with a `## Scope` section naming that slice, runs the definition-of-ready + link-integrity gate, then gates the plan approval through a human decision before handing the folder off.
+description: Use once a CR's impact set is realized and the FR/NFR/BR slice it produced is ready to hand off — authors the WP folder (`wp/{id}/index.md`) directly from its template with a `## Scope` section naming that slice, runs the definition-of-ready + link-integrity gate, then gates the plan approval through a human decision before handing the folder off.
 ---
 
 # Prepare WP

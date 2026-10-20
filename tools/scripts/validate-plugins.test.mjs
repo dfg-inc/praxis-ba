@@ -90,3 +90,14 @@ describe("validatePluginsRoot against monorepo plugins/", () => {
     expect(r.checked).toBeGreaterThan(10);
   });
 });
+
+describe("upload-safe descriptions", () => {
+  it("FAIL on an XML-like tag in a skill description", () => {
+    const dir = mkdtempSync(join(tmpdir(), "vp-"));
+    mkdirSync(join(dir, "skills", "demo"), { recursive: true });
+    writeFileSync(join(dir, "skills", "demo", "SKILL.md"), "---\nname: demo\ndescription: plan at wp/<id>/plan.md\n---\n\nbody\n");
+    const r = validatePluginTree(dir);
+    expect(r.ok).toBe(false);
+    expect(r.errors.join()).toContain("<id>");
+  });
+});

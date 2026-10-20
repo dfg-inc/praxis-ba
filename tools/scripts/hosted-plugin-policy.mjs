@@ -11,7 +11,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { extractLeadingFrontmatter } from "./validate-plugins.mjs";
 import { parse as yamlParse } from "yaml";
-import { inspectZipEntries, parseZip } from "./claude-zip.mjs";
+import { inspectZipEntries, parseZip, readLocalFile } from "./claude-zip.mjs";
 
 export const HOSTED_BIN_FORBIDDEN = "CLAUDE_HOSTED_PLUGIN_TOP_LEVEL_BIN_FORBIDDEN";
 
@@ -47,6 +47,108 @@ function walkFiles(dir, out = []) {
   return out;
 }
 
+
+function extractZipFiles(buf) {
+  return parseZip(buf)
+    .entries.filter((e) => e.fileType === "file")
+    .map((e) => ({ name: e.name, data: readLocalFile(buf, e) }));
+}
+
+/** Claude Desktop's upload validator limits (name format, description length) for skills. */
+export const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SKILL_NAME_MAX = 64;
+export const SKILL_DESCRIPTION_MAX = 1024;
+/** Anything shaped like an XML/HTML tag, e.g. <id>, </tag>, <br/>. Comparisons such as "a < b" do not match. */
+export const XML_LIKE_TAG = /<\/?[A-Za-z][^<>]*>/;
+
+/**
+ * Checks one SKILL.md the way the hosted upload validator is known or likely to: strict YAML frontmatter, required
+ * string name/description, name format and length, description length, and no XML-like tags in the description.
+ * The server does not publish its rules; XML-like tags in descriptions are the violation confirmed by Anthropic's
+ * skill authoring documentation and by the praxis-ba incident (two descriptions containing `<id>`).
+ * @returns {string[]} issues, each prefixed with the skill directory name
+ */
+export function validateSkillForUpload(raw, dirName) {
+  const issues = [];
+  const at = (msg) => `skill ${dirName}: ${msg}`;
+  const fm = extractLeadingFrontmatter(raw);
+  if (!fm || fm.error) return [at(`frontmatter ${fm?.error ?? "missing"}`)];
+  let data;
+  try {
+    data = yamlParse(fm.yaml);
+  } catch (e) {
+    return [at(`frontmatter is not valid YAML: ${String(e.message).split("\n")[0]}`)];
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return [at("frontmatter must be a YAML mapping")];
+  const { name, description } = data;
+  if (typeof name !== "string" || !name.trim()) issues.push(at("missing required string 'name'"));
+  else {
+    if (name.length > SKILL_NAME_MAX) issues.push(at(`name is ${name.length} chars (max ${SKILL_NAME_MAX})`));
+    if (!SKILL_NAME_PATTERN.test(name)) issues.push(at(`name '${name}' must be lowercase letters, digits and hyphens`));
+    if (name !== dirName) issues.push(at(`name '${name}' does not match directory '${dirName}'`));
+    if (/anthropic|claude/.test(name)) issues.push(at(`name '${name}' contains a reserved word`));
+  }
+  if (typeof description !== "string" || !description.trim()) issues.push(at("missing required string 'description'"));
+  else {
+    if (description.length > SKILL_DESCRIPTION_MAX) {
+      issues.push(at(`description is ${description.length} chars (max ${SKILL_DESCRIPTION_MAX})`));
+    }
+    const tag = description.match(XML_LIKE_TAG);
+    if (tag) issues.push(at(`description contains an XML-like tag ${tag[0]}; use {id} or plain words`));
+  }
+  return issues;
+}
+
+/** Skill names must be unique across the plugin. */
+export function duplicateSkillNames(skills) {
+  const seen = new Map();
+  const issues = [];
+  for (const { dirName, raw } of skills) {
+    let name;
+    try {
+      name = yamlParse(extractLeadingFrontmatter(raw)?.yaml ?? "")?.name;
+    } catch {
+      continue;
+    }
+    if (typeof name !== "string") continue;
+    if (seen.has(name)) issues.push(`duplicate skill name '${name}' in ${seen.get(name)} and ${dirName}`);
+    else seen.set(name, dirName);
+  }
+  return issues;
+}
+
+/**
+ * ZIP-level checks every Claude Desktop plugin upload must pass, whatever skills it carries: safe paths, no symlinks,
+ * no nested archives, no node_modules/tgz, plugin.json at .claude-plugin/plugin.json, valid and unique skills.
+ * Unlike inspectHostedZipBuffer it does not apply the skills-only hosted-runtime policy (no role MCP, no bin/).
+ */
+export function inspectUploadZipBuffer(buf) {
+  const inspected = inspectZipEntries(buf);
+  const issues = [...inspected.issues];
+  let hasPluginJson = false;
+  for (const e of inspected.entries) {
+    const name = e.name.replace(/\/+$/, "");
+    if (name === ".claude-plugin/plugin.json") hasPluginJson = true;
+    if (name === ".claude-plugin/marketplace.json") issues.push(`CLAUDE_HOSTED_PLUGIN_MARKETPLACE_IN_STANDALONE_ZIP: ${e.name}`);
+    if (name.includes("node_modules")) issues.push(`CLAUDE_PLUGIN_NODE_MODULES: ${e.name}`);
+    if (/\.tgz$/i.test(name)) issues.push(`CLAUDE_PLUGIN_TGZ: ${e.name}`);
+    if (/\.zip$/i.test(name)) issues.push(`CLAUDE_PLUGIN_NESTED_ZIP: ${e.name}`);
+    if (/(^|\/)(\.DS_Store|__MACOSX|Thumbs\.db)$|(^|\/)\._/.test(name)) issues.push(`CLAUDE_PLUGIN_JUNK: ${e.name}`);
+    if (/(^|\/)\.env(\.|$)/.test(name)) issues.push(`secret-like file ${e.name}`);
+  }
+  if (!hasPluginJson) issues.push("missing .claude-plugin/plugin.json at the archive root");
+  const skills = [];
+  for (const file of extractZipFiles(buf)) {
+    const m = file.name.match(/^skills\/([^/]+)\/SKILL\.md$/);
+    if (!m) continue;
+    const raw = file.data.toString("utf8");
+    skills.push({ dirName: m[1], raw });
+    issues.push(...validateSkillForUpload(raw, m[1]));
+  }
+  issues.push(...duplicateSkillNames(skills));
+  return { ...inspected, issues, skillCount: skills.length };
+}
+
 export function inspectHostedZipBuffer(buf) {
   parseZip(buf);
   const inspected = inspectZipEntries(buf);
@@ -69,8 +171,18 @@ export function inspectHostedZipBuffer(buf) {
       issues.push(`CLAUDE_PLUGIN_NODE_MODULES: ${e.name}`);
     }
     if (/\.tgz$/i.test(name)) issues.push(`CLAUDE_PLUGIN_TGZ: ${e.name}`);
+    if (/\.zip$/i.test(name)) issues.push(`CLAUDE_PLUGIN_NESTED_ZIP: ${e.name}`);
   }
-  return { ...inspected, issues };
+  const skills = [];
+  for (const file of extractZipFiles(buf)) {
+    const m = file.name.match(/^skills\/([^/]+)\/SKILL\.md$/);
+    if (!m) continue;
+    const raw = file.data.toString("utf8");
+    skills.push({ dirName: m[1], raw });
+    issues.push(...validateSkillForUpload(raw, m[1]));
+  }
+  issues.push(...duplicateSkillNames(skills));
+  return { ...inspected, issues, skillCount: skills.length };
 }
 
 export function validateStandalonePluginJson(pluginJson, version, expectedName) {
@@ -142,9 +254,7 @@ export function validateExtractedHostedPlugin(unpack, plugin, version) {
       continue;
     }
     const raw = readFileSync(skillMd, "utf8");
-    const fm = extractLeadingFrontmatter(raw);
-    if (!fm || fm.error) issues.push(`SKILL.md parse failed ${skill}: ${fm?.error}`);
-    else yamlParse(fm.yaml);
+    issues.push(...validateSkillForUpload(raw, skill));
     if (/\$\{CLAUDE_PLUGIN_ROOT\}\/bin\/praxis|\bbin\/praxis\b/.test(raw)) {
       issues.push(`skill ${skill} still instructs bin/praxis`);
     }

@@ -95,6 +95,12 @@ function validateSkillOrAgentFrontmatter(data, kind, rel) {
   if (typeof description !== "string" || description.trim().length === 0) {
     issues.push(`${rel}: missing required string field 'description'`);
   }
+  if (typeof description === "string") {
+    // Claude Desktop rejects uploads whose skill/agent description contains XML-like tags such as <id>.
+    const tag = description.match(/<\/?[A-Za-z][^<>]*>/);
+    if (tag) issues.push(`${rel}: description contains an XML-like tag ${tag[0]} (rejected on upload; use {id})`);
+    if (description.length > 1024) issues.push(`${rel}: description is ${description.length} chars (max 1024)`);
+  }
   if (kind === "skill") {
     const base = rel.split(/[/\\]/).at(-2);
     if (typeof name === "string" && base && name !== base) {
