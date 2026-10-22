@@ -1,7 +1,7 @@
 {
   "name": "praxis-ba",
   "private": true,
-  "version": "0.1.0-alpha.47",
+  "version": "0.1.0-alpha.48",
   "description": "Praxis BA Skills plugin and praxis-ba.zip",
   "workspaces": [
     "plugins/*",
@@ -12,8 +12,8 @@
     "build": "npm run build -w @praxis/ba --if-present",
     "test": "npm run test --workspaces --if-present",
     "plugins:validate": "node tools/scripts/validate-plugins.mjs",
-    "pack:zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.47",
-    "pack:full-zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.47 --full praxis-ba --out dist/claude-plugins-full/praxis-ba.zip",
+    "pack:zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.48",
+    "pack:full-zip": "node tools/scripts/pack-claude-plugins.mjs --version 0.1.0-alpha.48 --full praxis-ba --out dist/claude-plugins-full/praxis-ba.zip",
     "check:skill-cli": "node tools/scripts/check-skill-cli.mjs",
     "check:boundaries": "node tools/scripts/check-boundaries.mjs",
     "accept:claude-plugins": "node tools/scripts/claude-plugins-acceptance.mjs",
@@ -28,9 +28,10 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@praxis/plugin-sdk": "file:vendor/praxis-plugin-sdk-0.1.0-alpha.47.tgz",
-    "@praxis/knowledge": "file:vendor/praxis-knowledge-0.1.0-alpha.47.tgz",
-    "@praxis/project-config": "file:vendor/praxis-project-config-0.1.0-alpha.47.tgz"
+    "@praxis/plugin-sdk": "file:vendor/praxis-plugin-sdk-0.1.0-alpha.48.tgz",
+    "@praxis/knowledge": "file:vendor/praxis-knowledge-0.1.0-alpha.48.tgz",
+    "@praxis/project-config": "file:vendor/praxis-project-config-0.1.0-alpha.48.tgz",
+    "@praxis/contracts": "file:vendor/praxis-contracts-0.1.0-alpha.48.tgz"
   },
   "repository": {
     "type": "git",
