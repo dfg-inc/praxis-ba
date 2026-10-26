@@ -33,12 +33,22 @@ const zipSkills = (path) => {
 };
 const light = zipSkills(join(root, "claude-plugins/praxis-ba.zip"));
 const full = zipSkills(join(root, "dist/claude-plugins-full/praxis-ba.zip"));
+/** English purposes for skills whose own description is not in English (the public docs are English only). */
+const EN = {
+  "ba-code-surface-scan": "Internal sub-skill of ba-onboard: lists every backend route and frontend UI action of one code area deterministically, without interpreting meaning.",
+  "ba-onboard": "Brings an existing codebase onto the BA canon: reverses project context (data model, integrations, RBAC, NFRs, glossary, AS-IS map) from the code, then picks the first slice for capture-cr.",
+  "ba-plan-slice": "The slicing gate inside grill-cr: splits a change request into separate user stories (one per requirement), separates rules and NFRs, and shows the plan to a human before confirmation.",
+  "ba-scaffold": "Once per project: lays out the BA documentation layer around the canon (project.md, glossary, inputs, shared, diagrams, meetings, tasks, archive) from templates.",
+  "one-pager": "Builds a client one-pager from a live canonical requirement; fails if its purpose or acceptance criteria are missing.",
+};
 const short = (s) => {
   const first = s.split(/(?<=[.!?])\s/)[0] ?? s;
   return (first.length > 170 ? `${first.slice(0, 167)}...` : first).replace(/\|/g, "/");
 };
 const rows = names.map((n) => {
-  const { description } = frontmatter(join(skillsDir, n, "SKILL.md"));
+  let { description } = frontmatter(join(skillsDir, n, "SKILL.md"));
+  if (EN[n]) description = EN[n];
+  if (/[\u0400-\u04FF]/.test(description)) throw new Error(`skill ${n} has a non-English description and no English purpose in skill-list.mjs`);
   return `| \`${n}\` | ${short(description)} | yes | ${full ? (full.has(n) ? "yes" : "no") : "?"} | ${light ? (light.has(n) ? "yes" : "no") : "?"} |`;
 });
 const table = [`${names.length} skills in version ${version}, read from \`plugins/ba/skills\` and from the built archives.`, "", "| Skill | What it is for | Marketplace plugin | Desktop Chat full ZIP | Desktop Chat light ZIP |", "| --- | --- | --- | --- | --- |", ...rows].join("\n");

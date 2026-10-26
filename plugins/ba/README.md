@@ -64,12 +64,12 @@ claude plugin install praxis-ba@praxis
 | --- | --- | --- | --- | --- |
 | `accept` | Use once a plan-approved WP's development harness reports its validation is green — the sole human-gated path to baselining a WP's requirements, the only verb in this ... | yes | yes | no |
 | `approve-plan` | Use to record a human's plan-approval decision for a `ready` WP — the reusable human gate `prepare-wp` calls into once its definition-of-ready check is green and a pla... | yes | yes | no |
-| `ba-code-surface-scan` | Внутренний под-скилл для ba-onboard (Шаг 7) — детерминированно перечисляет ВСЕ backend-роуты и frontend UI-действия одной области кода по явным код-якорям, без интерпр... | yes | yes | no |
+| `ba-code-surface-scan` | Internal sub-skill of ba-onboard: lists every backend route and frontend UI action of one code area deterministically, without interpreting meaning. | yes | yes | no |
 | `ba-jira-status` | Read-only BA/Jira status for an Epic (canonical stories, superseded, handoff). | yes | yes | yes |
 | `ba-lint` | Use after any write to the canon — runs machine validation via the packaged praxis-ba CLI in the required order. | yes | yes | no |
-| `ba-onboard` | Use when bringing an EXISTING / legacy codebase onto the ADLC BA canon — код есть, BA-артефактов нет. | yes | yes | no |
-| `ba-plan-slice` | Use inside praxis-ba:grill-cr, after its interview and before its final confirmation gate — гейт планирования нарезки. | yes | yes | no |
-| `ba-scaffold` | Use once per project, before any requirement work — разворачивает слой BA-документации вокруг канона (project.md, glossary.md, inputs/, shared/, diagrams/, meetings/, ... | yes | yes | no |
+| `ba-onboard` | Brings an existing codebase onto the BA canon: reverses project context (data model, integrations, RBAC, NFRs, glossary, AS-IS map) from the code, then picks the first... | yes | yes | no |
+| `ba-plan-slice` | The slicing gate inside grill-cr: splits a change request into separate user stories (one per requirement), separates rules and NFRs, and shows the plan to a human bef... | yes | yes | no |
+| `ba-scaffold` | Once per project: lays out the BA documentation layer around the canon (project.md, glossary, inputs, shared, diagrams, meetings, tasks, archive) from templates. | yes | yes | no |
 | `capture-bug` | Use when a client reports a bug against a shipped FR/NFR/BR — mints the bug directly from its template, recording repro/expected/actual and which requirement it violates. | yes | yes | no |
 | `capture-cr` | Use when a change request comes in. | yes | yes | no |
 | `change-request` | Handle a change to an application that already exists: a new feature in it, a behaviour change, an extension, a fix, or a technical change across services. | yes | yes | yes |
@@ -79,7 +79,7 @@ claude plugin install praxis-ba@praxis
 | `jira-analyze-epic` | Analyze a Jira Epic key, create/update Stories with AC, write Architect handoff. | yes | yes | no |
 | `jira-epic-analysis` | Analyze a Jira Epic, prepare BA stories and Architect handoff. | yes | yes | yes |
 | `local-workflow` | Start or resume BA requirements from a local business request, markdown, or repository without Jira. | yes | yes | yes |
-| `one-pager` | Build a client one-pager from a live canonical FR (WBS 1.14). | yes | yes | no |
+| `one-pager` | Builds a client one-pager from a live canonical requirement; fails if its purpose or acceptance criteria are missing. | yes | yes | no |
 | `prepare-wp` | Use once a CR's impact set is realized and the FR/NFR/BR slice it produced is ready to hand off — authors the WP folder (`wp/{id}/index.md`) directly from its template... | yes | yes | no |
 | `present-plan` | Show the user the exact BA action (preview) before any protected BA write, then let them approve or reject it in the MCP client. | yes | yes | no |
 | `prototype` | Build and refine an interactive HTML prototype on mock data before any detailed story, using the application's real styles. | yes | yes | yes |
