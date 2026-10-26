@@ -22,7 +22,7 @@ Entering `stories_review` needs every planned story detailed. A story keeps the 
 - `update-story` by id: patch fields, and add, set or remove acceptance criteria. The story gets a new revision; its marks start over, other stories' marks stay, earlier confirmations and Quality evidence for it become stale.
 - `exclude-story` / `restore-story`, `split-story` (moves criteria into new stories), `merge-stories`.
 - A requirement taken out of scope excludes its stories by itself.
-- Coverage: `praxis_workflow_status` → `next` reports gaps (a requirement without a story, missing view/search/create/edit/delete/validation/error/permission/state stories). Fix them or waive with a reason.
+- Coverage: `praxis_workflow_status` → `next` reports gaps (a requirement without a story, missing view/search/create/edit/delete/validation/error/permission/state stories). Fix them, or let the user waive them (`waivers` through `praxis_review_apply`; you cannot).
 
 ## Confirm
 

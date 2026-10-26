@@ -19,5 +19,5 @@ Stage: `story_plan`. Role: BA.
 ## Rules
 
 - `add-story` is refused in guided mode for a story that is not in the agreed plan (`STORY_PLAN_NOT_AGREED`, `STORY_NOT_IN_PLAN`). Do not skip the plan.
-- A plan that does not cover what the requirements imply is refused (`coverage gaps`): add the story, or waive the gap with a reason (`waive-coverage`).
+- A plan that does not cover what the requirements imply is refused (`coverage gaps`): add the story, or, if the user agrees the gap is intended, they waive it (a `waivers` entry handed over through `praxis_review_apply`; `waive-coverage` from you is refused).
 - You cannot mark the plan agreed for the user.
