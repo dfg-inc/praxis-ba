@@ -66,6 +66,7 @@ const SKILL_NAMES = [
   'capture-bug',
   'status',
   'goals',
+  'ba-init',
 ] as const
 
 // The 4 skills whose whole point is authoring a brand-new canon page
@@ -271,6 +272,19 @@ describe('the 9 SKILL.md files — .claude/plugins/praxis-ba/skills/*/SKILL.md',
   it.each(SKILL_NAMES)("%s/SKILL.md's frontmatter name matches its directory", (name) => {
     const { data } = matter(readSkill(name))
     expect(data.name).toBe(name)
+  })
+})
+
+describe('ba-init skill', () => {
+  it('carries the hosted-policy runtime line and previews before writing', () => {
+    const text = readSkill('ba-init')
+    expect(text).toContain('If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.')
+    expect(text).toMatch(/init --repo \. --dry-run/)
+    expect(text).toContain('praxis_canon_init')
+    expect(text).toContain('${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs')
+  })
+  it.each(['ba-scaffold', 'ba-onboard', 'capture-cr', 'confirm-vision'])('%s points at ba-init when .ba/ is absent', (name) => {
+    expect(readFileSync(skillPath(name), 'utf8')).toMatch(/ba-init/)
   })
 })
 

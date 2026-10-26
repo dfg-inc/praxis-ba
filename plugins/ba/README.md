@@ -58,13 +58,14 @@ claude plugin install praxis-ba@praxis
 ## Skills
 
 <!-- skills:start -->
-29 skills in version 0.1.0-alpha.48, read from `plugins/ba/skills` and from the built archives.
+30 skills in version 0.1.0-alpha.48, read from `plugins/ba/skills` and from the built archives.
 
 | Skill | What it is for | Marketplace plugin | Desktop Chat full ZIP | Desktop Chat light ZIP |
 | --- | --- | --- | --- | --- |
 | `accept` | Use once a plan-approved WP's development harness reports its validation is green — the sole human-gated path to baselining a WP's requirements, the only verb in this ... | yes | yes | no |
 | `approve-plan` | Use to record a human's plan-approval decision for a `ready` WP — the reusable human gate `prepare-wp` calls into once its definition-of-ready check is green and a pla... | yes | yes | no |
 | `ba-code-surface-scan` | Internal sub-skill of ba-onboard: lists every backend route and frontend UI action of one code area deterministically, without interpreting meaning. | yes | yes | no |
+| `ba-init` | Create the BA canon of a NEW project: the machine files, folders and a draft vision. | yes | yes | no |
 | `ba-jira-status` | Read-only BA/Jira status for an Epic (canonical stories, superseded, handoff). | yes | yes | yes |
 | `ba-lint` | Use after any write to the canon — runs machine validation via the packaged praxis-ba CLI in the required order. | yes | yes | no |
 | `ba-onboard` | Brings an existing codebase onto the BA canon: reverses project context (data model, integrations, RBAC, NFRs, glossary, AS-IS map) from the code, then picks the first... | yes | yes | no |
@@ -111,7 +112,7 @@ claude plugin install praxis-ba@praxis
 
 ## The canon
 
-A canon root is a directory holding `.ba/{config,counters}.yaml`, `vision.md`, `epics/E#-*/`, `br/`, `cr/`, `wp/`, `bugs/`, `baselines/BL-*/`. Requirements are markdown (machine frontmatter + human body); traceability is typed frontmatter refs (`traces_to` / `enforces` / `references_nfr` / `fr_ids`); registers + backlinks + RTM are generated views (e.g. VitePress data loaders in a host repo's own docs site).
+A canon root (created by `praxis-ba init`) is a directory holding `.ba/{config,counters}.yaml`, `vision.md`, `epics/E#-*/`, `br/`, `cr/`, `wp/`, `bugs/`, `baselines/BL-*/`. Requirements are markdown (machine frontmatter + human body); traceability is typed frontmatter refs (`traces_to` / `enforces` / `references_nfr` / `fr_ids`); registers + backlinks + RTM are generated views (e.g. VitePress data loaders in a host repo's own docs site).
 
 `.ba/config.yaml` declares what counts as canon and how `## Scope` links resolve:
 
@@ -130,7 +131,7 @@ link_root: product
 
 ## CLI verbs
 
-`id next` · `fmt` · `validate [--check]` · `vision confirm` · `cr confirm --entry vision|requirement --impacts-file <path>` · `cr realize` · `req edit|retire` · `epic add` · `wp prepare|approve-plan|abandon` · `bug capture|resolve` · `accept` · `status` · `render` (alias `export`) · `migrate` · `migrate-v3`.
+`init [--dry-run] [--product <name>] [--epic <title>]` · `id next` · `fmt` · `validate [--check]` · `vision confirm` · `cr confirm --entry vision|requirement --impacts-file <path>` · `cr realize` · `req edit|retire` · `epic add` · `wp prepare|approve-plan|abandon` · `bug capture|resolve` · `accept` · `status` · `render` (alias `export`) · `migrate` · `migrate-v3`.
 
 Retired (no longer real dispatch verbs — replaced by the hybrid `id next` + direct `Write` pattern): `cr capture`, `req add`, `wp author`.
 
@@ -140,49 +141,25 @@ Every verb takes `--repo <canon-dir>`.
 
 Skills `Write` canon md **directly** (`id next` → author from a template → `fmt` → `validate --check`); the CLI is reserved for transactional ops (`req edit` on a baselined item, `cr confirm`, `accept`, gates, reads). The human gates — confirm vision, confirm CR entry point + impact set (`grill-cr`), approve plan, accept/baseline — go through a real prompt (`AskUserQuestion`); machines write `VERIFY-OK`/`VERIFY-FAIL`, never `PASS`.
 
-## Bootstrapping a fresh canon
+## Start a new project
 
-A brand-new canon root needs three files before any skill can run against it:
+In an empty project directory (Claude Code or Cowork; the CLI is a local command). The plugin is all you need: no source checkout, no `node_modules`.
 
-`.ba/counters.yaml` (zeroed):
-
-```yaml
-product:
-  epic: 0
-  cr: 0
-  wp: 0
-  bug: 0
-  baselineSeq: {}
-epics: {}
-retired: []
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs init --repo . --dry-run   # preview: lists what would be created, writes nothing
+node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs init --repo . --product "My product" --epic "First epic"
+node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs status --repo .           # VERIFY-OK
 ```
 
-`.ba/config.yaml`:
+(In the full Desktop ZIP the CLI is `tools/praxis-ba.cjs`.) `init` creates `.ba/config.yaml`, `.ba/counters.yaml`, the folders `epics/ br/ cr/ wp/ bugs/ baselines/`, a **draft** `vision.md`, and, with `--epic`, a first epic. It never overwrites: a second run creates nothing, an invalid existing `.ba/config.yaml` is refused (never repaired), and nothing outside `--repo` is touched. The skill `ba-init` runs it with a preview and asks the user first.
 
-```yaml
-canon_roots:
-  - vision.md
-  - epics/
-  - br/
-  - cr/
-  - wp/
-  - bugs/
-link_root: <canon-dir-basename>
-```
+Then, in order:
 
-`vision.md`, from `templates/vision.md` (`status: draft` until a human runs `vision confirm`):
+1. `confirm-vision`: write the vision and have a human confirm it (`praxis-ba vision confirm`; only that verb sets `status: confirmed`).
+2. `ba-scaffold` (optional): the project documentation layer (project.md, glossary, inputs, shared). `init` does not create it.
+3. `capture-cr`, then `grill-cr`, `shape-requirement`, `prepare-wp`.
 
-```markdown
----
-type: vision
-status: draft
----
-
-State, in one or two paragraphs, what this product is for and the outcome
-it exists to produce.
-```
-
-From there: `node <plugin-dir>/bin/praxis-ba.cjs status --repo <canon-dir>` should report `VERIFY-OK`, and `confirm-vision` can run.
+Any other canon command in a directory without a canon stops with `no canon here: run praxis-ba init --repo <dir>`.
 
 ## Rebuilding the bundled CLI (maintainers)
 

@@ -52,7 +52,7 @@
 // (identity) via `currentUser()`. This file is the ONE place in the package
 // allowed to do either.
 
-import { existsSync, readFileSync, readdirSync, type Dirent } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, type Dirent } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { userInfo } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
@@ -63,6 +63,7 @@ import { parseAcBlock } from './ac.js'
 import { bodyHasLeadingFrontmatterFence, extractNfrMentions } from './body-refs.js'
 import { formatFile, formatText } from './fmt.js'
 import { readCanonConfig, walkCanonFiles } from './fs.js'
+import { initCanon } from './init.js'
 import { buildGraph, type Graph } from './graph.js'
 import type { FrontmatterFor } from './graph.js'
 import { definitionOfReady, scopeLinkIssues, scopeVersionIssues, type VerifyEvidence } from './gates.js'
@@ -130,6 +131,11 @@ export type CliJson = {
   checks: Check[]
   surface?: unknown
   warnings?: unknown
+  /** `init` only: repo-relative paths created (or, with --dry-run, that would be created), and left untouched. */
+  created?: string[]
+  skipped?: string[]
+  dryRun?: boolean
+  next?: string[]
 }
 
 export type CliResult = { code: number; json: CliJson }
@@ -214,6 +220,9 @@ const OPTIONS: Record<string, OptionSpec> = {
   init: { type: 'boolean', default: false },
   project: { type: 'string' },
   canon: { type: 'string' },
+  'dry-run': { type: 'boolean', default: false },
+  product: { type: 'string' },
+  epic: { type: 'string' },
 }
 
 type FlagValues = Record<string, string | boolean | undefined>
@@ -354,8 +363,74 @@ function resolveLinkRoot(repo: string): string {
 // dispatch
 // ==========================================================================
 
+/** Verbs that read or mutate a canon and therefore need an initialized canon root (`praxis-ba init`). */
+const NEEDS_CANON: ReadonlySet<string> = new Set([
+  'vision confirm',
+  'cr confirm',
+  'cr realize',
+  'epic add',
+  'req edit',
+  'req retire',
+  'wp prepare',
+  'wp approve-plan',
+  'wp abandon',
+  'accept',
+  'bug capture',
+  'bug resolve',
+  'id next',
+  'status',
+  'goals status',
+  'check-goals',
+  'one-pager',
+  'render',
+  'export',
+  'validate',
+])
+
+/** A clear, actionable error instead of an ENOENT on `.ba/.lock` or `.ba/counters.yaml`. */
+function assertCanonRoot(repo: string): void {
+  const hint = `run praxis-ba init --repo ${repo}`
+  let baIsDir = false
+  try {
+    baIsDir = statSync(join(repo, '.ba')).isDirectory()
+  } catch {
+    baIsDir = false
+  }
+  if (!baIsDir) throw new Error(`no canon here: ${hint}`)
+  if (!existsSync(join(repo, '.ba', 'counters.yaml'))) {
+    throw new Error(`no canon here (.ba/counters.yaml is missing): ${hint}`)
+  }
+}
+
 async function dispatch(verb: string, repo: string, values: FlagValues, positionals: readonly string[]): Promise<CliResult> {
+  if (NEEDS_CANON.has(verb)) assertCanonRoot(repo)
   switch (verb) {
+    case 'init': {
+      const r = await initCanon(repo, {
+        dryRun: values['dry-run'] === true,
+        product: asString(values.product),
+        epic: asString(values.epic),
+      })
+      const verbPhrase = r.dryRun ? 'would create' : 'created'
+      const checks: Check[] = [
+        {
+          name: r.dryRun ? 'init-dry-run' : 'init',
+          ok: true,
+          reason: `${verbPhrase} ${r.created.length} path(s), ${r.skipped.length} already present, in ${r.repo}${r.dryRun ? ' (nothing written)' : ''}`,
+        },
+        ...r.created.map((p) => ({ name: r.dryRun ? 'would-create' : 'created', ok: true, reason: p })),
+        ...r.skipped.map((p) => ({ name: 'skipped', ok: true, reason: `${p} (already exists, left untouched)` })),
+        ...r.notes.map((n) => ({ name: 'note', ok: true, reason: n })),
+        ...r.next.map((n) => ({ name: 'next', ok: true, reason: n })),
+      ]
+      const res = toResult(checks, { ...(r.epic ? { id: r.epic.id, path: join(r.repo, r.epic.path) } : {}) })
+      res.json.created = r.created
+      res.json.skipped = r.skipped
+      res.json.dryRun = r.dryRun
+      res.json.next = r.next
+      return res
+    }
+
     case 'vision confirm': {
       const by = asString(values.by) ?? currentUser()
       const date = asString(values.date) ?? todayDate()

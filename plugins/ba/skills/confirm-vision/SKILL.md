@@ -14,6 +14,7 @@ Vision is the root of the canon graph: `definitionOfReady` (blocks `wp prepare`)
 
 ## What happens
 
+0. **Canon root.** If the directory has no `.ba/` folder, run the `ba-init` skill first (it creates the machine files and a draft `vision.md`); every `praxis-ba` command below fails with `no canon here` without it.
 1. **Read** `<repo>/vision.md` (`--repo` is the canon root, `product/` in this monorepo). If it doesn't exist yet, `Write` it from `${CLAUDE_PLUGIN_ROOT}/templates/vision.md` (`status: draft`) with the drafted vision prose — one or two paragraphs stating what the product is for and the outcome it exists to produce, per the template's own body comment. This is the ONE non-gated step here; there is no `vision capture` verb in the CLI at all — vision is a singleton file, not an id-minted entity (`id next` has no `vision` scope).
 2. **Summarize** the drafted/existing vision back to the human: objective, scope, non-goals, and whether a future FR/NFR/BR would obviously belong or not. When outcomes are clear enough to name, draft candidate **goals** (`templates/goal.md` / skill `goals`) after confirmation — vision is the root; goals are the measurable layer requirements will cite via `goal_ids`.
 3. Where the objective is unmeasurable or the scope is blurry, surface it as an explicit open question rather than inventing a value — never guess an answer that has no source.
