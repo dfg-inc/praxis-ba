@@ -19,7 +19,7 @@ Not for a project that already has a canon (check with `status`), and not for th
 ## Two ways, same files
 
 - **Runtime tools (any host, including Claude Desktop Chat; no local command needed):** `praxis_canon_init_preview` (read-only plan) then `praxis_canon_init_apply` with `confirmation=YES`; the user approves exactly the listed paths in the client's dialog. Optional `product` sets the heading of the draft vision. It does not create the first epic.
-- **The BA CLI (Claude Code or Cowork):** `node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs init --repo . [--dry-run] [--product "<name>"] [--epic "<title>"]`; `--epic` also creates the first epic E1 when the canon has no epics yet.
+- **The BA CLI (Claude Code or Cowork):** `node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs init --repo . --dry-run` first to preview, then without `--dry-run` (optional `--product "<name>"`, `--epic "<title>"`); `--epic` also creates the first epic E1 when the canon has no epics yet.
 
 Prefer the Runtime tools when the Praxis Runtime is available; use the CLI when you also want the first epic.
 
