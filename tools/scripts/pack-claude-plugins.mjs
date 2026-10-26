@@ -158,7 +158,7 @@ claude plugin install ${plugin.id}@praxis
 
 (install \`praxis@praxis\` instead for all four roles). In the Claude UI: Customize -> Plugins -> Add marketplace -> \`dfg-inc/praxis-marketplace\`. The Praxis Runtime is installed with the plugin.
 
-This archive is the skills-only upload for Claude Desktop Chat, which has no plugin Runtime: install \`praxis-runtime.mcpb\` first, then upload this ZIP.
+This archive is an upload for Claude Desktop Chat, which has no plugin Runtime: install \`praxis-runtime.mcpb\` first, then upload this ZIP. The light ZIP carries a small hosted subset of the skills; the full ZIP (\`${plugin.id}-full.zip\` in a release) carries every skill and, for BA, the CLI under \`tools/\`.
 
 ## What it needs
 
