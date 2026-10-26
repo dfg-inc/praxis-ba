@@ -161,7 +161,7 @@ Claude Chat may show Skills, but local edit/test flow needs workspace/runtime ca
 `;
 }
 
-/** Directories a full (all-skills) Desktop upload carries next to skills/. Code (canon-graph, tools, bin) stays out. */
+/** Directories a full (all-skills) Desktop upload carries next to skills/. The BA CLI the canon skills call travels as tools/ files (see bundleBaCli): a top-level bin/ is refused by the Desktop upload rules. */
 const FULL_EXTRA_DIRS = ["prompts", "rules", "templates"];
 
 /**
@@ -185,6 +185,52 @@ function bundleSessionBootstrap(src, dest) {
   });
 }
 
+/**
+ * The canon skills (approve-plan, prepare-wp, ba-lint, accept, one-pager ...) run ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs and
+ * tools/one-pager.mjs. The Desktop upload rules forbid a top-level bin/, so the full archive carries the same self-contained
+ * CLI under tools/ and the staged skills point there. The step still needs a host that can run local commands (Claude Code,
+ * Cowork); in Desktop Chat without a shell the skill reports it cannot run instead of pretending.
+ */
+function bundleBaCli(src, dest) {
+  const cli = join(src, "canon-graph", "bin", "praxis-ba.mjs");
+  if (!existsSync(cli)) fail("BA full archive: canon-graph/bin/praxis-ba.mjs is missing, the canon skills would have no CLI");
+  esbuild.buildSync({
+    entryPoints: [cli],
+    outfile: join(dest, "tools", "praxis-ba.bundle.mjs"),
+    bundle: true,
+    platform: "node",
+    target: "node20",
+    format: "esm",
+    logLevel: "silent",
+    banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+  });
+  writeFileSync(
+    join(dest, "tools", "praxis-ba.cjs"),
+    "#!/usr/bin/env node\n// Self-contained praxis-ba CLI (canon-graph bundled; no node_modules needed).\nimport(require('node:url').pathToFileURL(require('node:path').join(__dirname, 'praxis-ba.bundle.mjs')).href).catch((error) => {\n  console.error(error && error.stack ? error.stack : String(error));\n  process.exit(1);\n});\n",
+  );
+  const onePager = join(src, "tools", "one-pager.mjs");
+  if (existsSync(onePager)) {
+    esbuild.buildSync({
+      entryPoints: [onePager],
+      outfile: join(dest, "tools", "one-pager.mjs"),
+      bundle: true,
+      platform: "node",
+      target: "node20",
+      format: "esm",
+      logLevel: "silent",
+      banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+    });
+  }
+  const skillsDir = join(dest, "skills");
+  for (const name of readdirSync(skillsDir)) {
+    const file = join(skillsDir, name, "SKILL.md");
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, "utf8");
+    const next = text.split("${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs").join("${CLAUDE_PLUGIN_ROOT}/tools/praxis-ba.cjs");
+    if (next !== text) writeFileSync(file, next);
+  }
+}
+
 function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   const dest = join(stagingRoot, plugin.id);
   rmSync(dest, { recursive: true, force: true });
@@ -205,6 +251,7 @@ function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
     copyTreeFiltered(join(src, dir), join(dest, dir));
   }
   if (allSkills) bundleSessionBootstrap(src, dest);
+  if (allSkills && plugin.id === "praxis-ba") bundleBaCli(src, dest);
   const pluginJsonPath = join(dest, ".claude-plugin", "plugin.json");
   if (!existsSync(pluginJsonPath)) fail(`missing ${pluginJsonPath}`);
   const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));

@@ -20,8 +20,9 @@
     "accept:claude-hosted-plugins": "node tools/scripts/claude-hosted-plugins-acceptance.mjs",
     "accept:ba-diagnostics": "node tools/scripts/ba-diagnostics-acceptance.mjs --rebuild",
     "accept:ba-outcomes": "node tools/scripts/ba-outcomes-acceptance.mjs --rebuild",
-    "verify": "npm run build && npm run test && npm run plugins:validate && npm run check:skill-cli && npm run check:boundaries && npm run pack:zip && npm run pack:full-zip && npm run accept:claude-plugins && npm run accept:ba-diagnostics && npm run accept:ba-outcomes",
-    "check:version": "node tools/scripts/check-ecosystem-version.mjs"
+    "verify": "npm run build && npm run test && npm run plugins:validate && npm run check:skill-cli && npm run check:boundaries && npm run pack:zip && npm run pack:full-zip && npm run accept:claude-plugins && npm run accept:full-zip && npm run accept:ba-diagnostics && npm run accept:ba-outcomes",
+    "check:version": "node tools/scripts/check-ecosystem-version.mjs",
+    "accept:full-zip": "node tools/scripts/full-zip-acceptance.mjs"
   },
   "engines": {
     "node": ">=20"
