@@ -31,11 +31,11 @@ let bad = 0;
 for (const dir of dirs) {
   const r = spawnSync("claude", ["plugin", "validate", dir, "--profile", "directory"], { encoding: "utf8" });
   const out = `${r.stdout}${r.stderr}`;
-  const warnings = out.split("\n").filter((l) => /^\s*❯ /.test(l) && !/ICON_MISSING|This folder also holds|repository root was taken/.test(l));
+  const warnings = /⚠ Found/.test(out) ? out.split("\n").filter((l) => /^\s*❯ /.test(l) && !/This folder also holds|repository root was taken/.test(l)) : [];
   if (r.status !== 0 || /✘/.test(out) || warnings.length) {
     bad += 1;
     console.error(`FAIL ${dir}\n${warnings.join("\n")}\n${r.status !== 0 ? out.slice(0, 600) : ""}`);
   } else console.log(`  ok ${dir.replace(root, ".")}`);
 }
 if (bad) process.exit(1);
-console.log(`PASS plugin-validate (${dirs.length} packed plugin directories; the only open warning is the missing listing icon)`);
+console.log(`PASS plugin-validate (${dirs.length} packed plugin directories, no errors, no warnings)`);
