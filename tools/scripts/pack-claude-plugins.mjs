@@ -145,19 +145,29 @@ function collectZipEntries(dest) {
 function pluginReadme(plugin, version) {
   return `# ${plugin.title}
 
-Claude UI / Cowork plugin for Praxis ${version}.
+Claude plugin for Praxis ${version}.
 
-${plugin.title} requires:
-- the Praxis Runtime Desktop Extension (\`claude-extensions/praxis-runtime.mcpb\`) installed and enabled
-- Jira fields completed in Praxis Runtime settings (token is sensitive; never paste it into chat)
-- a supported Claude workspace / Cowork execution surface with project access
+## Install
+
+From the Praxis Marketplace (Claude Code, Claude Desktop Code, Cowork):
+
+\`\`\`
+claude plugin marketplace add dfg-inc/praxis-marketplace
+claude plugin install ${plugin.id}@praxis
+\`\`\`
+
+(install \`praxis@praxis\` instead for all four roles). In the Claude UI: Customize -> Plugins -> Add marketplace -> \`dfg-inc/praxis-marketplace\`. The Praxis Runtime is installed with the plugin.
+
+This archive is the skills-only upload for Claude Desktop Chat, which has no plugin Runtime: install \`praxis-runtime.mcpb\` first, then upload this ZIP.
+
+## What it needs
+
+- the Praxis Runtime (one shared MCP server; it comes with the marketplace plugin, or as \`praxis-runtime.mcpb\` for Chat)
 - access to the product repository
 
-Do not paste Jira tokens into chat. Do not run \`praxis\`, \`make\`, \`launchctl\`, or edit config files for normal use.
+Jira is not needed: local mode works without any account or token. Jira, Git hosting and similar integrations are optional and configured separately; never paste tokens into chat.
 
-Primary workflow: invoke a role Skill and speak naturally. Tools come from the shared Praxis Runtime MCP, not a per-plugin server.
-
-Claude Chat may show Skills, but local edit/test flow needs workspace/runtime capabilities. If the repository or local runtime is unavailable the tools return \`REPOSITORY_UNAVAILABLE\` or \`LOCAL_RUNTIME_UNAVAILABLE\` instead of pretending work ran.
+Primary workflow: invoke a role skill and speak naturally. Tools come from the shared Praxis Runtime MCP, not from a per-plugin server. Where the repository or a local runtime is unavailable the tools return \`REPOSITORY_UNAVAILABLE\` or \`LOCAL_RUNTIME_UNAVAILABLE\` instead of pretending work ran.
 `;
 }
 
