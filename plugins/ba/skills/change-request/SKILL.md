@@ -5,6 +5,8 @@ description: "Handle a change to an application that already exists: a new featu
 
 # Change request
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 Work item kind: `change`, `extension`, `fix` or `technical` (`set-work-item-kind`).
 
 ## Flow

@@ -5,6 +5,8 @@ description: "Write detailed User Stories from the agreed plan and review them w
 
 # Stories and their review
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 Stage: `stories_review`. Role: BA.
 
 ## Write

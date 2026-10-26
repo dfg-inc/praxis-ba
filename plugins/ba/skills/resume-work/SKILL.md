@@ -5,6 +5,8 @@ description: "Continue work in a new chat. Use when the user says to continue th
 
 # Resume work
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 1. `praxis_session_start` with `role: "ba"` (or `praxis_workflow_status`). Read `resume` / `briefing`.
 2. If `selectionRequired` or `resume.choose` is set: list the Work Items (id, title, phase) and ask which to continue. Select it (`select-work-item`) or pass `workItemId` from then on. Never guess between candidates.
 3. Tell the user, from the briefing only: the Work Item, its stage, what is accepted and what is pending (criteria, prototype, plan, stories), decisions, open questions, repositories, and the last session note.

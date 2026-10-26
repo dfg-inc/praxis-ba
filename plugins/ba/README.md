@@ -1,4 +1,4 @@
-# praxis-ba (v3 — canon-graph)
+# praxis-ba
 
 The ADLC **Business Analyst** plugin: author and govern a **md-first, git-native requirements canon** with skills + a self-contained validator/CLI.
 
@@ -40,40 +40,64 @@ Everything new stays outside `canon/`: canon pages are still authored only by th
 skills, and the engine's write path is untouched. The packaged plugin runtime is
 **Node.js only** (no system Python).
 
-## Installing this plugin (consumers)
+## Install
 
-This repo is **both** the marketplace and the plugin it distributes. To consume it in a host repo, declare the git marketplace and enable the plugin in that repo's `.claude/settings.local.json`, pinned to a released tag (`ref`) so the harness resolves a **specific version**:
+From the Praxis Marketplace (Claude Code, Claude Desktop Code, Cowork):
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "praxis-ba": {
-      "source": {
-        "source": "url",
-        "url": "https://github.com/dfg-inc/praxis-ba.git",
-        "ref": "v1.0"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "praxis-ba@praxis-ba": true
-  }
-}
+```
+claude plugin marketplace add dfg-inc/praxis-marketplace
+claude plugin install praxis-ba@praxis
 ```
 
-- `extraKnownMarketplaces.<name>.source.ref` pins the marketplace fetch to a git ref — a tag (`v1.0`), branch, or commit. Bump this to move to a new release.
-- `enabledPlugins` uses the `<plugin>@<marketplace>` convention — here both are `praxis-ba`.
-- Put this in `.claude/settings.json` (committed) to share the pin with the whole team, or `.claude/settings.local.json` (git-ignored) for a personal/per-machine override.
+(install `praxis@praxis` instead for all four roles). In the Claude UI: Customize -> Plugins -> Add marketplace -> `dfg-inc/praxis-marketplace`. The shared Praxis Runtime (one MCP server) comes with it.
 
-Verify with `/plugin marketplace list` (shows `praxis-ba` at `v1.0`) and `/plugin list` (shows `praxis-ba@praxis-ba` enabled).
+**Installing does not need a Jira token or any account.** Local mode (requirements, review, prototype, plan, stories in the repository) works without Jira. Jira is an optional integration that you configure separately, only if you want to read or write Jira; never paste a token into chat.
+
+**Claude Desktop Chat** has no plugin Runtime: install `praxis-runtime.mcpb`, then upload the BA ZIP. The full ZIP carries every skill below plus the self-contained CLI under `tools/`; the light ZIP carries the Jira/local-workflow skills and the requirements-review, prototype, story-plan, stories-review, change-request and resume-work skills (they need only the Runtime tools). Steps that run the CLI (`approve-plan`, `prepare-wp`, `ba-lint`, `accept`, `one-pager`) need a host that can run local commands (Claude Code, Cowork); without one they report that instead of pretending.
+
+## Skills
+
+<!-- skills:start -->
+29 skills in version 0.1.0-alpha.48, read from `plugins/ba/skills` and from the built archives.
+
+| Skill | What it is for | Marketplace plugin | Desktop Chat full ZIP | Desktop Chat light ZIP |
+| --- | --- | --- | --- | --- |
+| `accept` | Use once a plan-approved WP's development harness reports its validation is green — the sole human-gated path to baselining a WP's requirements, the only verb in this ... | yes | yes | no |
+| `approve-plan` | Use to record a human's plan-approval decision for a `ready` WP — the reusable human gate `prepare-wp` calls into once its definition-of-ready check is green and a pla... | yes | yes | no |
+| `ba-code-surface-scan` | Внутренний под-скилл для ba-onboard (Шаг 7) — детерминированно перечисляет ВСЕ backend-роуты и frontend UI-действия одной области кода по явным код-якорям, без интерпр... | yes | yes | no |
+| `ba-jira-status` | Read-only BA/Jira status for an Epic (canonical stories, superseded, handoff). | yes | yes | yes |
+| `ba-lint` | Use after any write to the canon — runs machine validation via the packaged praxis-ba CLI in the required order. | yes | yes | no |
+| `ba-onboard` | Use when bringing an EXISTING / legacy codebase onto the ADLC BA canon — код есть, BA-артефактов нет. | yes | yes | no |
+| `ba-plan-slice` | Use inside praxis-ba:grill-cr, after its interview and before its final confirmation gate — гейт планирования нарезки. | yes | yes | no |
+| `ba-scaffold` | Use once per project, before any requirement work — разворачивает слой BA-документации вокруг канона (project.md, glossary.md, inputs/, shared/, diagrams/, meetings/, ... | yes | yes | no |
+| `capture-bug` | Use when a client reports a bug against a shipped FR/NFR/BR — mints the bug directly from its template, recording repro/expected/actual and which requirement it violates. | yes | yes | no |
+| `capture-cr` | Use when a change request comes in. | yes | yes | no |
+| `change-request` | Handle a change to an application that already exists: a new feature in it, a behaviour change, an extension, a fix, or a technical change across services. | yes | yes | yes |
+| `confirm-vision` | Use at the start of a new product or a vision-level change request — turns client prose into a confirmed vision.md, the human gate that unblocks every downstream CR/FR... | yes | yes | no |
+| `goals` | Use when shaping or reviewing requirements against product goals — authors goal pages, links FR/NFR/BR via goal_ids, and runs goals status / check-goals for unclosed g... | yes | yes | no |
+| `grill-cr` | Relentless product-level interview over a captured CR — one question at a time, each with a recommended answer — ending at the single human gate that confirms the CR's... | yes | yes | no |
+| `jira-analyze-epic` | Analyze a Jira Epic key, create/update Stories with AC, write Architect handoff. | yes | yes | no |
+| `jira-epic-analysis` | Analyze a Jira Epic, prepare BA stories and Architect handoff. | yes | yes | yes |
+| `local-workflow` | Start or resume BA requirements from a local business request, markdown, or repository without Jira. | yes | yes | yes |
+| `one-pager` | Build a client one-pager from a live canonical FR (WBS 1.14). | yes | yes | no |
+| `prepare-wp` | Use once a CR's impact set is realized and the FR/NFR/BR slice it produced is ready to hand off — authors the WP folder (`wp/{id}/index.md`) directly from its template... | yes | yes | no |
+| `present-plan` | Show the user the exact BA action (preview) before any protected BA write, then let them approve or reject it in the MCP client. | yes | yes | no |
+| `prototype` | Build and refine an interactive HTML prototype on mock data before any detailed story, using the application's real styles. | yes | yes | yes |
+| `requirements-review` | Review requirements and acceptance criteria with the user in a standard HTML page, one criterion at a time. | yes | yes | yes |
+| `resume-ba-work` | Resume BA work on an Epic from remote Jira + local proposal. | yes | yes | yes |
+| `resume-work` | Continue work in a new chat. | yes | yes | yes |
+| `session-start` | Use at the start of a BA session — runs the session bootstrap script (role ba, stage research) so project config and applicable knowledge rules are loaded before other... | yes | yes | no |
+| `shape-requirement` | Use once a CR's entry point is confirmed and its impact set names an FR, NFR, or BR — authors a brand-new draft requirement for a `spawns` impact, or amends an already... | yes | yes | no |
+| `status` | Use at any point to see where the product canon currently stands — vision confirmed or not, open/confirmed CRs, active vs. | yes | yes | no |
+| `stories-review` | Write detailed User Stories from the agreed plan and review them with the user in HTML with a checkbox for every criterion, step, rule and expected result. | yes | yes | yes |
+| `story-plan` | Write a short story plan before any detailed story: one line per story with what is built, what the user gets, data, prototype parts, requirements, repositories and de... | yes | yes | yes |
+<!-- skills:end -->
 
 ## What's here
 
-- **`skills/`** — 9 canon skills: `confirm-vision`, `capture-cr`, `grill-cr`, `shape-requirement`, `prepare-wp`, `approve-plan`, `accept`, `capture-bug`, `status`. They author md canon pages **directly** from `templates/`, then gate through the CLI. `grill-cr` is new in v3 — it sits between `capture-cr` (capture only, client's words verbatim) and `shape-requirement`, and now owns the CR entry-point + impact-set human gate end-to-end.
-- **`skills/ba-*`** — 5 skills for the **project layer around the canon**, the part the engine neither writes nor sees: `ba-scaffold` (lays out `inputs/`, `shared/`, `diagrams/`, `meetings/`, `tasks/`, `archive/` from `templates/layer/`), `ba-onboard` + `ba-code-surface-scan` (reverse project context out of an existing codebase when there are no BA artefacts yet), `ba-plan-slice` (the slice-planning gate `grill-cr` calls before its confirmation gate — turns scope into one-story-per-`fr` slices and produces the `--impacts-file`), `ba-lint` (semantic body checks + the layer outside `canon/`). They never write inside `canon/` — canon pages are authored only by the skills above.
-- **`templates/`** — the 8 canon page skeletons (vision, fr, nfr, br, cr, wp, bug, epic-index).
-- **`templates/layer/`** — 10 skeletons for the project layer (project, glossary, stakeholders, rbac, data-model, integrations, nfr-catalog, as-is, taxonomy, inputs-readme). Filename = target filename, except `inputs-readme.md` → `inputs/README.md` and `nfr-catalog.md` → `shared/nfr.md`.
-- **`bin/praxis-ba.cjs`** — the **self-contained CLI** (`@praxis-ba/canon-graph` bundled into one file; no build, no `node_modules`, no `npm install`, **no Python**). Run: `node <plugin-dir>/bin/praxis-ba.cjs <verb> --repo <canon-dir>`. `validate` includes structural graph checks **and** semantic body checks (formerly `lint.py`).
+- **`skills/`** — the skills above.
+- **`templates/`** — the 8 canon page skeletons (vision, fr, nfr, br, cr, wp, bug, epic-index) and **`templates/layer/`**, 10 skeletons for the project layer.
+- **`bin/praxis-ba.cjs`** (Marketplace plugin) / **`tools/praxis-ba.cjs`** (full Desktop ZIP) — the self-contained CLI (`@praxis-ba/canon-graph` bundled into one file; no build, no `node_modules`, no Python).
 
 ## The v3 model in brief
 

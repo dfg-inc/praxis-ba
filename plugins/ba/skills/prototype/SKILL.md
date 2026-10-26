@@ -5,6 +5,8 @@ description: "Build and refine an interactive HTML prototype on mock data before
 
 # Prototype
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 Stage: `prototype`. Role: BA.
 
 ## Flow

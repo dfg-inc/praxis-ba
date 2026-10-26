@@ -5,6 +5,8 @@ description: "Review requirements and acceptance criteria with the user in a sta
 
 # Requirements review (HTML)
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 Stage: `requirements_review`. Role: BA.
 
 ## Flow

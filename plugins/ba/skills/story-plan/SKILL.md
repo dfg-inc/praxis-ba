@@ -5,6 +5,8 @@ description: "Write a short story plan before any detailed story: one line per s
 
 # Story plan
 
+If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`.
+
 Stage: `story_plan`. Role: BA.
 
 ## Flow
