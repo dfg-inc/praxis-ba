@@ -11,7 +11,7 @@ description: Use once a CR's entry point is confirmed and its impact set names a
 
 1. Decide the type (`fr`/`nfr`/`br`) and epic from the impact entry (`{spawns: <type>, epic: <E#>}`). An epic must already exist under `<repo>/epics/` — this skill does not mint epics (no `epic add`-equivalent authoring flow is in scope here).
 2. `praxis-ba id next --scope fr:E1 --repo <canon-dir>` (or `nfr:E1` / `br:E1`) → mints and persists the next id (e.g. `E1-FR9`); the ledger advances immediately.
-3. **Write** the page directly from the matching template (`.claude/plugins/praxis-ba/templates/fr.md` / `nfr.md` / `br.md`):
+3. **Write** the page directly from the matching template (`${CLAUDE_PLUGIN_ROOT}/templates/fr.md` / `nfr.md` / `br.md`):
    - locate the epic's existing directory (list `<repo>/epics/` for the `E{n}` or `E{n}-*` match) for fr/nfr — write to `<that-dir>/<id>.md`; br is flat — write to `<repo>/br/<id>.md`.
    - replace the sentinel `id`/`epic`; set `traces_to: [<the confirmed CR id>]` (fr/nfr) so `definitionOfReady` can resolve it later; fill `enforces`/`references_nfr` (fr), or `verified_by` (nfr), or `kind`/`enforcement` (br) as known — when Rationale cites project NFR catalogue ids (`PXT-NFR-001`) or canon `E#-NFR#`, those ids must appear in `references_nfr` (the CLI also merges body mentions on `req edit`); set `goal_ids: [<G#>]` when a goal exists (skill `goals`); leave `status: draft`, `version: 1`.
    - fr body: the user story + a well-formed `## Acceptance Criteria` block (`- AC-N: given…, when…, then…` or `Дано… / Когда… / Тогда…`, ids unique within the page) + `## Rationale`. nfr body: the `## Planguage` block (Tag/Scale/Meter/Goal) + `## Rationale`. br body: one declarative sentence + `**Example:**` + `**Source:**`.

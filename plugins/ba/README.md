@@ -2,11 +2,11 @@
 
 The ADLC **Business Analyst** plugin: author and govern a **md-first, git-native requirements canon** with skills + a self-contained validator/CLI.
 
-**Install:** Claude → Customize → Plugins → Add marketplace → `dfg-inc/praxis-marketplace` → choose this plugin (or **Praxis** for the full set); the Runtime is installed with it. Terminal: `/plugin install praxis-ba --marketplace dfg-inc/praxis-marketplace`. Claude Desktop **Chat** has no plugin Runtime: install the separate `praxis-runtime.mcpb`, then upload `claude-plugins/praxis-ba.zip`. and invoke Jira Epic Analysis. Jira operations use shared Runtime MCP tools (`praxis_ba_preview` / `praxis_ba_apply`), not the Praxis CLI.
+**Install:** see [Install](#install) below. Jira is optional; local mode needs no account.
 
 v3 adds impact-traced CRs (a single confirm gate after a relentless `grill-cr` interview), folder-shaped WPs, and a **dev-harness-agnostic** posture — this plugin prepares INPUT for development only; it names no specific downstream dev workflow, tool, or vendor.
 
-## What's new in 0.4.0 — the layer around the canon
+## The layer around the canon (added in 0.4.0)
 
 Until now the plugin covered `canon/` and nothing else. But a BA does not work in
 `canon/` alone: the sources live next to it (client documents, the NFR catalogue, the
@@ -96,7 +96,7 @@ claude plugin install praxis-ba@praxis
 ## What's here
 
 - **`skills/`** — the skills above.
-- **`templates/`** — the 8 canon page skeletons (vision, fr, nfr, br, cr, wp, bug, epic-index) and **`templates/layer/`**, 10 skeletons for the project layer.
+- **`templates/`** — the 10 page skeletons (vision, fr, nfr, br, cr, wp, bug, epic-index, goal, one-pager) and **`templates/layer/`**, 10 skeletons for the project layer.
 - **`bin/praxis-ba.cjs`** (Marketplace plugin) / **`tools/praxis-ba.cjs`** (full Desktop ZIP) — the self-contained CLI (`@praxis-ba/canon-graph` bundled into one file; no build, no `node_modules`, no Python).
 
 ## The v3 model in brief

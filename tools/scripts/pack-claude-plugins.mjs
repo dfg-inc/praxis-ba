@@ -236,7 +236,7 @@ function bundleBaCli(src, dest) {
     const file = join(skillsDir, name, "SKILL.md");
     if (!existsSync(file)) continue;
     const text = readFileSync(file, "utf8");
-    const next = text.split("${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs").join("${CLAUDE_PLUGIN_ROOT}/tools/praxis-ba.cjs");
+    const next = text.split("${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs").join("${CLAUDE_PLUGIN_ROOT}/tools/praxis-ba.cjs").split("bin/praxis-ba.cjs").join("tools/praxis-ba.cjs");
     if (next !== text) writeFileSync(file, next);
   }
 }

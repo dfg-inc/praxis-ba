@@ -33,6 +33,7 @@ for (const s of skills) {
   const file = join(dir, "skills", s, "SKILL.md");
   if (!existsSync(file)) fail(`skills/${s}/SKILL.md missing`);
   const text = readFileSync(file, "utf8");
+  if (/bin\/praxis-ba\.cjs|\.claude\/plugins\/praxis-ba/.test(text)) fail(`skill ${s} still mentions a path that is not in the archive (bin/praxis-ba.cjs or .claude/plugins/praxis-ba)`);
   for (const m of text.matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/([A-Za-z0-9_./-]+)/g)) {
     const rel = m[1].replace(/[.,;:)]+$/, "");
     if (/^bin\//.test(rel)) fail(`skill ${s} still points at ${rel}`);

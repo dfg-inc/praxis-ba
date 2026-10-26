@@ -16,7 +16,7 @@ node ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs <verb> …
 ```
 
 1. `praxis-ba id next --scope wp --date <YYYYMMDD> --repo <canon-dir>` → mints and persists the next id (e.g. `WP-20260715-004`); `counters.product.wp` advances immediately.
-2. **Write** `<repo>/wp/<id>/index.md` directly from `.claude/plugins/praxis-ba/templates/wp.md`: replace the sentinel `id`; `role: developer|qa`; `status: draft`; a short goal/intent body, not the full plan; then the `## Scope` section:
+2. **Write** `<repo>/wp/<id>/index.md` directly from `${CLAUDE_PLUGIN_ROOT}/templates/wp.md`: replace the sentinel `id`; `role: developer|qa`; `status: draft`; a short goal/intent body, not the full plan; then the `## Scope` section:
    - `### Change requests` — required in practice: the confirmed CR(s) this WP delivers against. The gate below hard-requires every Delivers FR's `traces_to` to include at least one CR from THIS list (an FR tracing only to some CR the WP doesn't scope fails), and every CR listed here to be `confirmed`.
    - `### Delivers` — the real FR ids this WP delivers (every one must already be `status: active` — run `shape-requirement`'s activation step first if any is still `draft`).
    - `### Constraints` — optional: NFR/BR links this WP touches without a Delivers FR already carrying them.
