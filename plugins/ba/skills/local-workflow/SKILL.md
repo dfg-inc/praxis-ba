@@ -24,7 +24,7 @@ Preview with `praxis_workflow_preview`, show the plan, and STOP. After explicit 
 
 Commands are JSON:
 
-- `open` for a new local work item. Open it with `"mode": "guided"` so the stage gates apply (an item opened without a mode records stages but enforces nothing, which is how work items from older versions behave).
+- `open` for a new local work item. A new work item is `guided` by default (stage gates apply); you do not need to pass a mode. Work items created by older versions are `classic` (stages recorded, nothing enforced) and keep working as they are: do not change their mode on your own. To move one to the new flow, `set-mode` guided (nothing is deleted; the result lists what will be asked of the user next). Moving back to classic switches the gates off, so only the user can do it.
 
 Do not guess field names: `praxis_workflow_commands` lists every action with its required fields, and with `action` it returns a working example (for example `set-prototype`, `add-story`, `record-impact`).
 - `clarify` when information is missing. Put facts already present in the request or workflow in `known`. Do not ask those again.
