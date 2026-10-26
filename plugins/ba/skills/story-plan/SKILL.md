@@ -12,9 +12,9 @@ Stage: `story_plan`. Role: BA.
 1. Read the accepted requirements and the prototype (`praxis_workflow_inspect`, `praxis_workflow_status`).
 2. Decompose into stories that each deliver something the user can see: split by user outcome and screen, not by technical layer. Check the list against what a feature needs: viewing, searching and filtering, creating, editing, deleting, validation and error cases, permissions, empty/loading/error states. Missing ones are gaps.
 3. `set-story-plan` with one entry per story: `id` (`US-...`), `title`, `implementation` (what is built), `userGets`, `data`, `screenRefs` (`screen` or `screen#element`), `requirementIds`, `acIds`, `repositoryIds` / `serviceIds`, `dependsOn`, `capabilities`.
-4. `praxis_review_render` with `view: "story-plan"`. The user can edit a line, accept or reject it, exclude it with a reason, and agree the plan.
+4. `praxis_review_render` with `view: "story-plan"` (the Runtime opens it in the user's browser). The user can edit a line, accept or reject it, exclude it with a reason, and agree the plan.
 5. Change lines with `update-story-plan` (`add`, `update`, `exclude`, `restore`). Render again after changes.
-6. When the plan is agreed, `advance-phase` to `stories_review` and write the detailed stories with `add-story` (see `stories-review`).
+6. When the plan is agreed, write the detailed stories with `add-story`, one per plan line (see `stories-review`). When every line is detailed, `advance-phase` to `stories_review`.
 
 ## Rules
 

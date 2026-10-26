@@ -24,7 +24,9 @@ Preview with `praxis_workflow_preview`, show the plan, and STOP. After explicit 
 
 Commands are JSON:
 
-- `open` for a new local work item
+- `open` for a new local work item. Open it with `"mode": "guided"` so the stage gates apply (an item opened without a mode records stages but enforces nothing, which is how work items from older versions behave).
+
+Do not guess field names: `praxis_workflow_commands` lists every action with its required fields, and with `action` it returns a working example (for example `set-prototype`, `add-story`, `record-impact`).
 - `clarify` when information is missing. Put facts already present in the request or workflow in `known`. Do not ask those again.
 - `record-decision` after the user confirms a business decision
 - `add-requirement` for requirements and acceptance criteria that are not blocked
