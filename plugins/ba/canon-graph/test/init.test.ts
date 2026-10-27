@@ -99,6 +99,11 @@ describe('initCanon', () => {
     expect(res.json.verdict).toBe('VERIFY-OK')
   })
 
+  it('refuses a product name over the limit', async () => {
+    await expect(initCanon(tmp(), { product: 'x'.repeat(121) })).rejects.toThrow(/longer than 120/)
+    await expect(initCanon(tmp(), { product: 'x'.repeat(120), dryRun: true })).resolves.toBeDefined()
+  })
+
   it('refuses an invalid existing config and writes nothing', async () => {
     const repo = tmp()
     mkdirSync(join(repo, '.ba'))

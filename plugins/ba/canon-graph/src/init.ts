@@ -24,7 +24,7 @@
 //   - A first epic goes through the existing `addEpic` writer (one id
 //     allocator), and only when the canon has no epics yet.
 
-import { lstatSync, mkdirSync, readdirSync, realpathSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
 import { readCanonConfig, DEFAULT_CANON_ROOTS } from './fs.js'
@@ -115,9 +115,34 @@ function expectDir(abs: string, rel: string): boolean {
   return k === 'dir'
 }
 
+/** Longest product name init accepts (it becomes the vision heading). */
+export const MAX_PRODUCT_LENGTH = 120
+
+/** Paths created by the current apply, so a failure can remove exactly those again. */
+let undoLog: Array<() => void> | null = null
+
 function writeNew(abs: string, content: string): void {
-  // 'wx': fails instead of overwriting if the file appeared since planning.
-  writeFileSync(abs, content, { encoding: 'utf8', flag: 'wx' })
+  // A temporary name first, then a rename: never a half-written file. Refuses to overwrite a file that appeared since planning.
+  try {
+    lstatSync(abs)
+    throw new Error(`init: ${abs} appeared since planning; refusing to overwrite`)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+  }
+  const tmp = `${abs}.praxis-tmp-${process.pid}`
+  writeFileSync(tmp, content, { encoding: 'utf8', flag: 'wx' })
+  try {
+    renameSync(tmp, abs)
+  } catch (err) {
+    rmSync(tmp, { force: true })
+    throw err
+  }
+  undoLog?.push(() => rmSync(abs, { force: true }))
+}
+
+function makeDir(abs: string): void {
+  mkdirSync(abs)
+  undoLog?.push(() => rmSync(abs, { recursive: true, force: true }))
 }
 
 function epicsPresent(repo: string): boolean {
@@ -134,6 +159,7 @@ export async function initCanon(repoInput: string, options: InitOptions = {}): P
   if (options.epic !== undefined && !epicTitle) throw new Error('init: --epic needs a non-empty title')
   const product = options.product?.trim()
   if (options.product !== undefined && !product) throw new Error('init: --product needs a non-empty name')
+  if (product && product.length > MAX_PRODUCT_LENGTH) throw new Error(`init: --product is longer than ${MAX_PRODUCT_LENGTH} characters`)
 
   // The repo path itself may be a symlink to a project directory (the user's own choice of target): resolve it once;
   // everything below is a fixed child of the resolved directory and may not itself be a symlink.
@@ -157,7 +183,7 @@ export async function initCanon(repoInput: string, options: InitOptions = {}): P
   if (baExists) skipped.push('.ba/')
   else {
     created.push('.ba/')
-    actions.push(() => mkdirSync(baDir))
+    actions.push(() => makeDir(baDir))
   }
 
   const configAbs = join(baDir, 'config.yaml')
@@ -194,7 +220,7 @@ export async function initCanon(repoInput: string, options: InitOptions = {}): P
     else {
       created.push(`${name}/`)
       actions.push(() => {
-        mkdirSync(abs)
+        makeDir(abs)
         writeNew(join(abs, CANON_FOLDER_KEEP), '')
       })
     }
@@ -226,13 +252,28 @@ export async function initCanon(repoInput: string, options: InitOptions = {}): P
 
   // ---- apply ----------------------------------------------------------------
   if (!dryRun) {
-    for (const act of actions) act()
-    if (epicCreateNeeded && epicTitle) {
-      const { id } = await addEpic(repo, epicTitle)
-      epicPlan = { id, path: `epics/${id}-${slugify(epicTitle)}/index.md` }
-      // Replace the predicted entry with the real one (same id unless a race moved the counter).
-      const predicted = created.findIndex((p) => p.startsWith('epics/E') && p.endsWith('/index.md'))
-      if (predicted >= 0) created[predicted] = epicPlan.path
+    // everything this run creates is undone if a later step fails: a failure leaves the project as it was
+    undoLog = []
+    try {
+      for (const act of actions) act()
+      if (epicCreateNeeded && epicTitle) {
+        const { id } = await addEpic(repo, epicTitle)
+        epicPlan = { id, path: `epics/${id}-${slugify(epicTitle)}/index.md` }
+        // Replace the predicted entry with the real one (same id unless a race moved the counter).
+        const predicted = created.findIndex((p) => p.startsWith('epics/E') && p.endsWith('/index.md'))
+        if (predicted >= 0) created[predicted] = epicPlan.path
+      }
+    } catch (err) {
+      for (const step of (undoLog ?? []).reverse()) {
+        try {
+          step()
+        } catch {
+          /* best effort */
+        }
+      }
+      throw err
+    } finally {
+      undoLog = null
     }
   }
 
