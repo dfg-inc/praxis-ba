@@ -17,7 +17,7 @@ Stage: `requirements_review`. Role: BA.
 4. Wait. When every criterion is marked and accepted the review counts as accepted; no extra step is needed. The user's Save in the page records their decisions. Do not tell the user their decisions were recorded until `praxis_workflow_status` shows them.
 5. If the page could not save (no live connection), the user copies or downloads the decisions. Call `praxis_review_apply` with the JSON (`submission`) or the file path (`file`). The user then approves those exact decisions in the client's dialog; without a dialog nothing is recorded.
 6. Read the result: `conflicts` lists items that changed after the page was rendered and were skipped. Tell the user and offer a fresh page (`praxis_review_render` again).
-7. Rejected criteria and comments are your next work: revise with `review-requirements` (`statement`, `addAcceptance`, `removeAcceptance`, `scope`), then render again. A changed criterion is a new revision and is pending again; marks on other criteria stay.
+7. Rejected criteria and comments are your next work: reword a criterion with `revise-acceptance` (`edits: [{id, statement}]`, previewed and confirmed by the user); `review-requirements` is for `addAcceptance`, `removeAcceptance`, `scope` and remarks. Then render again. A changed criterion is a new revision and is pending again; marks on other criteria stay.
 8. When every in-scope criterion is accepted, `advance-phase` to `prototype`. A gate error names what is missing; do not work around it.
 
 ## Rules
