@@ -388,7 +388,11 @@ const NEEDS_CANON: ReadonlySet<string> = new Set([
 ])
 
 /** A clear, actionable error instead of an ENOENT on `.ba/.lock` or `.ba/counters.yaml`. */
-function assertCanonRoot(repo: string): void {
+const READ_ONLY_VERBS: ReadonlySet<string> = new Set(['status', 'goals status', 'check-goals', 'one-pager', 'render', 'export', 'validate'])
+
+function assertCanonRoot(repo: string, verb = ''): void {
+  // a canon made before `init` existed has no .ba/counters.yaml; its read-only verbs keep working
+  if (READ_ONLY_VERBS.has(verb) && (existsSync(join(repo, 'vision.md')) || existsSync(join(repo, 'epics')))) return
   const hint = `run praxis-ba init --repo ${repo}`
   let baIsDir = false
   try {
@@ -403,7 +407,7 @@ function assertCanonRoot(repo: string): void {
 }
 
 async function dispatch(verb: string, repo: string, values: FlagValues, positionals: readonly string[]): Promise<CliResult> {
-  if (NEEDS_CANON.has(verb)) assertCanonRoot(repo)
+  if (NEEDS_CANON.has(verb)) assertCanonRoot(repo, verb)
   switch (verb) {
     case 'init': {
       const r = await initCanon(repo, {

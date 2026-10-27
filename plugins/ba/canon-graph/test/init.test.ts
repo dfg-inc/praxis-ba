@@ -225,6 +225,13 @@ describe('verbs on a directory without a canon give an actionable error', () => 
     expect(readdirSync(repo)).toEqual([]) // the failing verb created nothing (e.g. no .ba/.lock)
   })
 
+  it('read-only verbs still run on a canon made before init existed (vision.md, no .ba)', async () => {
+    const repo = tmp()
+    writeFileSync(join(repo, 'vision.md'), '# Vision\n')
+    const r = await runCli(['status'], { repo })
+    expect(r.json.checks[0]?.reason ?? '').not.toMatch(/^no canon here/)
+  })
+
   it('a .ba without a ledger is reported as incomplete, not as ENOENT', async () => {
     const repo = tmp()
     mkdirSync(join(repo, '.ba'))
