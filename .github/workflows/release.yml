@@ -27,6 +27,10 @@ jobs:
       - run: npm run build
       - run: npm run pack:zip
       - run: npm run accept:claude-plugins
+      - run: npm run pack:full-zip
+      - run: npm run accept:full-zip
+      - name: Name the full archive
+        run: cp dist/claude-plugins-full/praxis-ba.zip dist/praxis-ba-full.zip
       - name: Write release-meta.json
         env:
           PRAXIS_RELEASE_ARTIFACT_NAME: praxis-ba.zip
@@ -38,5 +42,6 @@ jobs:
         with:
           files: |
             dist/claude-plugins/**/praxis-ba.zip
+            dist/praxis-ba-full.zip
             dist/release-meta.json
           generate_release_notes: true

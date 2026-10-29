@@ -15,7 +15,7 @@ The goals layer (WBS 1.11 / 1.16) sits between confirmed vision and shaped requi
 
 ## What happens
 
-1. **Author** (if needed) `goals/G{n}.md` from `.claude/plugins/praxis-ba/templates/goal.md` (or this plugin's `templates/goal.md`): pick the next free `G{n}`, set `title` and `status: draft|active`, fill Outcome + Success signal.
+1. **Author** (if needed) `goals/G{n}.md` from `${CLAUDE_PLUGIN_ROOT}/templates/goal.md` (or this plugin's `templates/goal.md`): pick the next free `G{n}`, set `title` and `status: draft|active`, fill Outcome + Success signal.
 2. On each FR/NFR/BR that advances the goal, set `goal_ids: [G{n}]` (array; may list more than one). Prefer editing via `shape-requirement` / `req edit` so baselined pages bump correctly.
 3. Run:
    ```

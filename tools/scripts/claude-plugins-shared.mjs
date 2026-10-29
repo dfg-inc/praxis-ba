@@ -11,6 +11,12 @@ export const PLUGINS = [
       "resume-ba-work",
       "ba-jira-status",
       "local-workflow",
+      "requirements-review",
+      "prototype",
+      "story-plan",
+      "stories-review",
+      "change-request",
+      "resume-work",
     ],
     helpCommands: [["ba", "--help"], ["ba", "preview", "--help"]],
   }

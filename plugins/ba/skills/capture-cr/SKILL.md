@@ -9,6 +9,8 @@ A CR is captured BEFORE its entry point or impact set is judged — that judgmen
 
 ## When to use
 
+No `.ba/` folder in the canon directory yet: run the `ba-init` skill first.
+
 After intake, once vision is `confirmed` and a document/note resolved into "this is a CR" — not a bug alone (`capture-bug`).
 
 ## Steps (HYBRID: direct Write)

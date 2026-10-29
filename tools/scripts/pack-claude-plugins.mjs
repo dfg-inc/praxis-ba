@@ -145,23 +145,33 @@ function collectZipEntries(dest) {
 function pluginReadme(plugin, version) {
   return `# ${plugin.title}
 
-Claude UI / Cowork plugin for Praxis ${version}.
+Claude plugin for Praxis ${version}.
 
-${plugin.title} requires:
-- the Praxis Runtime Desktop Extension (\`claude-extensions/praxis-runtime.mcpb\`) installed and enabled
-- Jira fields completed in Praxis Runtime settings (token is sensitive; never paste it into chat)
-- a supported Claude workspace / Cowork execution surface with project access
+## Install
+
+From the Praxis Marketplace (Claude Code, Claude Desktop Code, Cowork):
+
+\`\`\`
+claude plugin marketplace add dfg-inc/praxis-marketplace
+claude plugin install ${plugin.id}@praxis
+\`\`\`
+
+(install \`praxis@praxis\` instead for all four roles). In the Claude UI: Customize -> Plugins -> Add marketplace -> \`dfg-inc/praxis-marketplace\`. The Praxis Runtime is installed with the plugin.
+
+This archive is an upload for Claude Desktop Chat, which has no plugin Runtime: install \`praxis-runtime.mcpb\` first, then upload this ZIP. The light ZIP carries a small hosted subset of the skills; the full ZIP (\`${plugin.id}-full.zip\` in a release) carries every skill and, for BA, the CLI under \`tools/\`.
+
+## What it needs
+
+- the Praxis Runtime (one shared MCP server; it comes with the marketplace plugin, or as \`praxis-runtime.mcpb\` for Chat)
 - access to the product repository
 
-Do not paste Jira tokens into chat. Do not run \`praxis\`, \`make\`, \`launchctl\`, or edit config files for normal use.
+Jira is not needed: local mode works without any account or token. Jira, Git hosting and similar integrations are optional and configured separately; never paste tokens into chat.
 
-Primary workflow: invoke a role Skill and speak naturally. Tools come from the shared Praxis Runtime MCP, not a per-plugin server.
-
-Claude Chat may show Skills, but local edit/test flow needs workspace/runtime capabilities. If the repository or local runtime is unavailable the tools return \`REPOSITORY_UNAVAILABLE\` or \`LOCAL_RUNTIME_UNAVAILABLE\` instead of pretending work ran.
+Primary workflow: invoke a role skill and speak naturally. Tools come from the shared Praxis Runtime MCP, not from a per-plugin server. Where the repository or a local runtime is unavailable the tools return \`REPOSITORY_UNAVAILABLE\` or \`LOCAL_RUNTIME_UNAVAILABLE\` instead of pretending work ran.
 `;
 }
 
-/** Directories a full (all-skills) Desktop upload carries next to skills/. Code (canon-graph, tools, bin) stays out. */
+/** Directories a full (all-skills) Desktop upload carries next to skills/. The BA CLI the canon skills call travels as tools/ files (see bundleBaCli): a top-level bin/ is refused by the Desktop upload rules. */
 const FULL_EXTRA_DIRS = ["prompts", "rules", "templates"];
 
 /**
@@ -185,6 +195,52 @@ function bundleSessionBootstrap(src, dest) {
   });
 }
 
+/**
+ * The canon skills (approve-plan, prepare-wp, ba-lint, accept, one-pager ...) run ${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs and
+ * tools/one-pager.mjs. The Desktop upload rules forbid a top-level bin/, so the full archive carries the same self-contained
+ * CLI under tools/ and the staged skills point there. The step still needs a host that can run local commands (Claude Code,
+ * Cowork); in Desktop Chat without a shell the skill reports it cannot run instead of pretending.
+ */
+function bundleBaCli(src, dest) {
+  const cli = join(src, "canon-graph", "bin", "praxis-ba.mjs");
+  if (!existsSync(cli)) fail("BA full archive: canon-graph/bin/praxis-ba.mjs is missing, the canon skills would have no CLI");
+  esbuild.buildSync({
+    entryPoints: [cli],
+    outfile: join(dest, "tools", "praxis-ba.bundle.mjs"),
+    bundle: true,
+    platform: "node",
+    target: "node20",
+    format: "esm",
+    logLevel: "silent",
+    banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+  });
+  writeFileSync(
+    join(dest, "tools", "praxis-ba.cjs"),
+    "#!/usr/bin/env node\n// Self-contained praxis-ba CLI (canon-graph bundled; no node_modules needed).\nimport(require('node:url').pathToFileURL(require('node:path').join(__dirname, 'praxis-ba.bundle.mjs')).href).catch((error) => {\n  console.error(error && error.stack ? error.stack : String(error));\n  process.exit(1);\n});\n",
+  );
+  const onePager = join(src, "tools", "one-pager.mjs");
+  if (existsSync(onePager)) {
+    esbuild.buildSync({
+      entryPoints: [onePager],
+      outfile: join(dest, "tools", "one-pager.mjs"),
+      bundle: true,
+      platform: "node",
+      target: "node20",
+      format: "esm",
+      logLevel: "silent",
+      banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+    });
+  }
+  const skillsDir = join(dest, "skills");
+  for (const name of readdirSync(skillsDir)) {
+    const file = join(skillsDir, name, "SKILL.md");
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, "utf8");
+    const next = text.split("${CLAUDE_PLUGIN_ROOT}/bin/praxis-ba.cjs").join("${CLAUDE_PLUGIN_ROOT}/tools/praxis-ba.cjs").split("bin/praxis-ba.cjs").join("tools/praxis-ba.cjs");
+    if (next !== text) writeFileSync(file, next);
+  }
+}
+
 function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   const dest = join(stagingRoot, plugin.id);
   rmSync(dest, { recursive: true, force: true });
@@ -205,6 +261,7 @@ function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
     copyTreeFiltered(join(src, dir), join(dest, dir));
   }
   if (allSkills) bundleSessionBootstrap(src, dest);
+  if (allSkills && plugin.id === "praxis-ba") bundleBaCli(src, dest);
   const pluginJsonPath = join(dest, ".claude-plugin", "plugin.json");
   if (!existsSync(pluginJsonPath)) fail(`missing ${pluginJsonPath}`);
   const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
@@ -214,7 +271,7 @@ function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   writeFileSync(join(dest, "VERSION"), `${version}\n`);
   writeFileSync(join(dest, "README.md"), pluginReadme(plugin, version));
   // Ship applicable OSS license texts with the distributable ZIP (Apache-2.0 requires NOTICE/LICENSE with redistributions).
-  for (const name of ["LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt"]) {
+  for (const name of ["LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt", "THIRD-PARTY-NOTICES.md"]) {
     const lic = join(src, name);
     if (existsSync(lic)) cpSync(lic, join(dest, name));
   }

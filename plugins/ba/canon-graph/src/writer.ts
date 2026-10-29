@@ -104,7 +104,7 @@ export function wpPath(repo: string, id: string): string {
  * Never throws on pathological input (all-punctuation title, etc.) — falls
  * back to the literal `epic` slug rather than minting a directory with an
  * empty/malformed name segment. */
-function slugify(title: string): string {
+export function slugify(title: string): string {
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

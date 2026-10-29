@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "policy": "independent",
-  "version": "0.1.0-alpha.48",
+  "version": "0.1.0-alpha.49",
   "repositories": [
     "praxis-core",
     "praxis-runtime",
