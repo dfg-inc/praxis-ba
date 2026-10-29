@@ -6,6 +6,8 @@ stages:
   - release
 
 default:
+  # EXPERIMENT: shared runner 172 (untagged jobs) answers 403 at git fetch; runner 171 (tag k8s) does not.
+  tags: [k8s]
   image: node:22-bookworm
   interruptible: true
   cache:
