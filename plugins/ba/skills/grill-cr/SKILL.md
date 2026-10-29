@@ -3,10 +3,9 @@ name: grill-cr
 description: Relentless product-level interview over a captured CR — one question at a time, each with a recommended answer — ending at the single human gate that confirms the CR's entry point and impact set. Runs after capture-cr, before shape-requirement.
 ---
 
-<!-- Vendored per the v3 no-external-dependency mandate from the owner's
-grilling skill at ~/.claude/skills/grilling/SKILL.md (and its /grill-me
-wrapper), adapted from plan/design grilling to BA change-request grilling.
-Original interview discipline preserved verbatim where possible. -->
+<!-- Attribution: the opening paragraph below is adapted from the `grill-me` skill of
+https://github.com/mattpocock/skills (MIT License, Copyright (c) 2026 Matt Pocock). The upstream
+licence is reproduced in THIRD-PARTY-NOTICES.md. The rest of this skill is Praxis's own. -->
 
 Interview the client relentlessly about every aspect of this change request
 until we reach a shared understanding. Walk down each branch of the ask,

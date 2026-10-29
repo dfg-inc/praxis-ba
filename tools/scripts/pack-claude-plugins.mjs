@@ -271,7 +271,7 @@ function stagePlugin(plugin, version, stagingRoot, { allSkills = false } = {}) {
   writeFileSync(join(dest, "VERSION"), `${version}\n`);
   writeFileSync(join(dest, "README.md"), pluginReadme(plugin, version));
   // Ship applicable OSS license texts with the distributable ZIP (Apache-2.0 requires NOTICE/LICENSE with redistributions).
-  for (const name of ["LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt"]) {
+  for (const name of ["LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt", "THIRD-PARTY-NOTICES.md"]) {
     const lic = join(src, name);
     if (existsSync(lic)) cpSync(lic, join(dest, name));
   }

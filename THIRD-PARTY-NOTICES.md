@@ -1,6 +1,6 @@
 # Third-party notices
 
-Praxis is licensed under the Apache License, Version 2.0 (see LICENSE and NOTICE). This Praxis plugin build output bundles the third-party packages below, which keep their own licences. Their copyright and licence texts follow unchanged.
+Praxis is licensed under the Apache License, Version 2.0 (see LICENSE and NOTICE). This Praxis plugin build output bundles the third-party packages (and, for BA, the adapted text) listed below, which keep their own licences. Their copyright and licence texts follow unchanged.
 
 ---
 
@@ -262,4 +262,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+---
+
+## Adapted text: the `grill-me` skill of mattpocock/skills
+
+The opening paragraph of `skills/grill-cr/SKILL.md` (the BA change-request interview) is adapted from the `grill-me` skill in https://github.com/mattpocock/skills, which is licensed under the MIT License. The adaptation is not original Praxis text and is not offered under Apache-2.0 as such; the rest of that skill file is Praxis's own. The upstream licence follows unchanged.
+
+```text
+MIT License
+
+Copyright (c) 2026 Matt Pocock
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
