@@ -21,5 +21,6 @@ Stage: `story_plan`. Role: BA.
 ## Rules
 
 - `add-story` is refused in guided mode for a story that is not in the agreed plan (`STORY_PLAN_NOT_AGREED`, `STORY_NOT_IN_PLAN`). Do not skip the plan.
-- A plan that does not cover what the requirements imply is refused (`coverage gaps`): add the story, or, if the user agrees the gap is intended, they waive it (a `waivers` entry handed over through `praxis_review_apply`; `waive-coverage` from you is refused).
+- A plan that does not cover what the requirements imply is refused (`coverage gaps`): add the story, or, if the user agrees the gap is intended, they waive it with a reason (in the Story Plan review page there is a "waive" control per gap; or a `waivers` entry handed over through `praxis_review_apply`; `waive-coverage` from you is refused). Waivers are applied before the agreement, so one Save can waive and agree.
+- Required capabilities come from what the requirement STATEMENT says a user can do and from what the prototype and endpoints built for it do; each gap names what asked for it. Wording inside the acceptance criteria only produces non-blocking suggestions (with the phrase that fired). Status values, quoted labels and parameter names are data, not operations. Capability inference reads English: for other languages declare `capabilities` on the plan lines.
 - You cannot mark the plan agreed for the user.

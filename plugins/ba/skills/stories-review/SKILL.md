@@ -28,7 +28,7 @@ Entering `stories_review` needs every planned story detailed. A story keeps the 
 
 ## Confirm
 
-Confirming a story's behavior (`confirm-story`) is the user's act: the client asks them to approve the exact content. Do not call it for them. When all items are accepted and coverage holds, `advance-phase` to `architecture` and hand off with `handoff` (story ids travel with it).
+Confirming a story's behavior (`confirm-story`) is the user's act: the client asks them to approve the exact content. Do not call it for them. Reviewing items and confirming a story are two decisions: `advance-phase` to `architecture` needs every active story confirmed. Read the story's current `revision` and `contentFingerprint` with `praxis_workflow_inspect` (`view: "stories"`); a wrong value is refused at preview, so never probe with a made-up fingerprint. Each confirmation is recorded in the work item (`approvals`, channel and what it proves; see `praxis_workflow_inspect` `view: "approvals"`). When all items are accepted and coverage holds, `advance-phase` to `architecture` and hand off with `handoff` (story ids travel with it).
 
 ## Rules
 
