@@ -58,7 +58,7 @@ claude plugin install praxis-ba@praxis
 ## Skills
 
 <!-- skills:start -->
-30 skills in version 0.1.0-alpha.48, read from `plugins/ba/skills` and from the built archives.
+30 skills in version 0.1.0-alpha.49, read from `plugins/ba/skills` and from the built archives.
 
 | Skill | What it is for | Marketplace plugin | Desktop Chat full ZIP | Desktop Chat light ZIP |
 | --- | --- | --- | --- | --- |
