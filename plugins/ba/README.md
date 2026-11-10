@@ -82,7 +82,7 @@ claude plugin install praxis-ba@praxis
 | `local-workflow` | Start or resume BA requirements from a local business request, markdown, or repository without Jira. | yes | yes | yes |
 | `one-pager` | Builds a client one-pager from a live canonical requirement; fails if its purpose or acceptance criteria are missing. | yes | yes | no |
 | `prepare-wp` | Use once a CR's impact set is realized and the FR/NFR/BR slice it produced is ready to hand off — authors the WP folder (`wp/{id}/index.md`) directly from its template... | yes | yes | no |
-| `present-plan` | Show the user the exact BA action (preview) before any protected BA write, then let them approve or reject it in the MCP client. | yes | yes | no |
+| `present-plan` | Show the user the exact BA action (preview) before any protected BA write, then let them approve or reject it where Praxis asks them (the client's dialog or the Praxis... | yes | yes | no |
 | `prototype` | Build and refine an interactive HTML prototype on mock data before any detailed story, using the application's real styles. | yes | yes | yes |
 | `requirements-review` | Review requirements and acceptance criteria with the user in a standard HTML page, one criterion at a time. | yes | yes | yes |
 | `resume-ba-work` | Resume BA work on an Epic from remote Jira + local proposal. | yes | yes | yes |
