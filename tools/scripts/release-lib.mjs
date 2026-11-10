@@ -38,7 +38,10 @@ export const ECOSYSTEM_REPOS = [
   "praxis-quality",
 ];
 
-const ALPHA_VERSION_RE = /0\.1\.0-alpha\.\d+/;
+/** A Praxis alpha version, with an optional patch number: 0.1.0-alpha.49 and 0.1.0-alpha.49.1 (never read as alpha.49). */
+const ALPHA_VERSION_SOURCE = String.raw`0\.1\.0-alpha\.\d+(?:\.\d+)*`;
+const ALPHA_VERSION_RE = new RegExp(ALPHA_VERSION_SOURCE);
+const alphaVersionsRe = () => new RegExp(ALPHA_VERSION_SOURCE, "g");
 
 /** Declarations of other products, or of vendored Core. Not this repo's version. */
 const SKIP_PRODUCT_VERSION = new Set([
@@ -190,7 +193,7 @@ export function applyVersionToData(relPath, data, version) {
 }
 
 function alphaVersionsIn(value) {
-  return typeof value === "string" ? (value.match(/0\.1\.0-alpha\.\d+/g) ?? []) : [];
+  return typeof value === "string" ? (value.match(alphaVersionsRe()) ?? []) : [];
 }
 
 /** Replace this repository's version inside npm scripts. Leaves file: pins alone. */
@@ -199,7 +202,7 @@ export function rewriteScriptVersions(data, version) {
   if (!data.scripts || typeof data.scripts !== "object") return false;
   for (const [key, value] of Object.entries(data.scripts)) {
     if (typeof value !== "string" || !ALPHA_VERSION_RE.test(value)) continue;
-    const next = value.replace(/0\.1\.0-alpha\.\d+/g, version);
+    const next = value.replace(alphaVersionsRe(), version);
     if (next !== value) {
       data.scripts[key] = next;
       changed = true;
@@ -218,7 +221,7 @@ export function rewriteVendorPinVersions(data, vendorVersion) {
       if (typeof range !== "string" || !range.startsWith("file:")) continue;
       if (!name.startsWith("@praxis/")) continue;
       if (!ALPHA_VERSION_RE.test(range)) continue;
-      const next = range.replace(/0\.1\.0-alpha\.\d+/g, vendorVersion);
+      const next = range.replace(alphaVersionsRe(), vendorVersion);
       if (next !== range) {
         deps[name] = next;
         changed = true;
