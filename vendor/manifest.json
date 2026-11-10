@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0-alpha.49",
-  "baseline": "5e78f55efb8d493189b492cfc864f05b502668da",
+  "version": "0.1.0-alpha.49.1",
+  "baseline": "c327b89c06418ae5b68a4c4576081b4762d9e2b9",
   "packages": [
     "@praxis/plugin-sdk",
     "@praxis/knowledge",
