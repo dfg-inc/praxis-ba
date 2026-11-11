@@ -17,7 +17,7 @@ Entering `stories_review` needs every planned story detailed. A story keeps the 
 
 ## Show
 
-`praxis_review_render` with `view: "stories"` (the Runtime opens it in the user's browser). The page lists every story with a control for each acceptance criterion, step, alternative, negative case, edge case, rule and result. The user ticks accept or reject per item, comments, edits a story's text, excludes it or restores it. Use `praxis_workflow_inspect` (`view: "stories"`) when the user only wants to read them.
+`praxis_review_render` with `view: "stories"` (the Runtime opens it in the user's browser). The page lists every story with a control for each acceptance criterion, step, alternative, negative case, edge case, rule and result. The user ticks accept or reject per item, comments, edits a story's text, excludes it or restores it, then presses **Send for approval**, which records nothing. Call `praxis_review_apply` with `fromPage: true` and `view: "stories"`: the client's dialog shows exactly those decisions and only the user's approval there records them (without a dialog nothing is recorded; the user applies it from the Claude Code CLI). Use `praxis_workflow_inspect` (`view: "stories"`) when the user only wants to read them.
 
 ## Change
 
