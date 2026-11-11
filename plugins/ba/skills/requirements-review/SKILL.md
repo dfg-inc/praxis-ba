@@ -1,6 +1,6 @@
 ---
 name: requirements-review
-description: "Review requirements and acceptance criteria with the user in a standard HTML page, one criterion at a time. Use when requirements exist and the user must accept, reject, edit, defer or remove them. The user decides in the page; you never record their acceptance yourself."
+description: "Review requirements and acceptance criteria with the user in a standard HTML page, one criterion at a time. Use when requirements exist and the user must accept, reject, edit, defer or remove them. The user sends their decisions from the page and approves them in the client's own dialog; you never record their acceptance yourself."
 ---
 
 # Requirements review (HTML)
